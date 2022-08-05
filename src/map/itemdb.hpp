@@ -994,6 +994,7 @@ enum e_random_item_group {
 	IG_Bs_Item_M_S_54,
 	IG_Bs_Item_M_S_55,
 	IG_Bs_Item_M_S_56,
+	IG_ODIN_RELIC,
 
 	IG_MAX,
 };
