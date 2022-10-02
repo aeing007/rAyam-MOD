@@ -26,6 +26,7 @@
 #include "status.hpp" // unit_data
 #include "unit.hpp" // unit_data
 #include "vending.hpp" // struct s_vending
+#include "pcmacro.hpp"
 
 enum AtCommandType : uint8;
 enum e_instance_mode : uint8;
@@ -869,8 +870,9 @@ struct map_session_data {
 		uint16 level;
 		int target;
 	} skill_keep_using;
-};
 
+	automatons::MacroCollection macros;
+};
 extern struct eri *pc_sc_display_ers; /// Player's SC display table
 
 /**

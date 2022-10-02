@@ -229,6 +229,9 @@
     <ClCompile Include="mob.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="pcmacro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>    
     <ClCompile Include="navi.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

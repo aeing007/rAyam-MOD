@@ -36,6 +36,8 @@
 	export_constant(MAX_ITEM_RDM_OPT);
 	export_constant(NAME_LENGTH);
 	export_constant(PASSWD_LENGTH);
+	export_constant(MAX_MACRO);
+	export_constant(MAX_MACRO_STEPS);
 
 	/* boolean values */
 	export_constant(true);
@@ -9098,6 +9100,9 @@
 	export_constant(ENCHANTGRADE_B);
 	export_constant(ENCHANTGRADE_A);
 	export_constant(MAX_ENCHANTGRADE);
+
+	export_constant(MACRO_START_ID);
+	export_constant(MACRO_END_ID);
 
 	#undef export_constant
 	#undef export_constant2

@@ -58,6 +58,7 @@
 #include "trade.hpp"
 #include "unit.hpp"
 #include "vending.hpp"
+#include "pcmacro.hpp"
 
 using namespace rathena;
 
@@ -7265,6 +7266,8 @@ void clif_item_skill( struct map_session_data *sd, uint16 skill_id, uint16 skill
 	p.packetType = HEADER_ZC_AUTORUN_SKILL;
 	p.skill_id = skill_id;
 	p.skill_type = skill_get_inf( skill_id );
+	if (automatons::MacroCollection::skill_is_macro_starter(skill_id))
+		sd->macros.set_current_macro_id(skill_lv - 1);
 	p.skill_lv = skill_lv;
 	p.skill_sp = skill_get_sp( skill_id, skill_lv );
 	p.skill_range = skill_get_range2( &sd->bl, skill_id, skill_lv, false );
@@ -11362,7 +11365,8 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
 		clif_clearunit_area(&sd->bl, CLR_DEAD);
 		return;
 	}
-
+	if(sd->macros.find_if_one_macro_is_active)
+		sd->macros.get_current_macro_sequence().reset();
 	if (sd->sc.opt1 && ( sd->sc.opt1 == OPT1_STONEWAIT || sd->sc.opt1 == OPT1_BURNING ))
 		; //You CAN walk on this OPT1 value.
 	else if (sd->progressbar.npc_id) {
@@ -12940,7 +12944,7 @@ void clif_parse_UseSkillToId( int fd, struct map_session_data *sd ){
 /*==========================================
  * Client tells server he'd like to use AoE skill id 'skill_id' of level 'skill_lv' on 'x','y' location
  *------------------------------------------*/
-static void clif_parse_UseSkillToPosSub(int fd, struct map_session_data *sd, uint16 skill_lv, uint16 skill_id, short x, short y, int skillmoreinfo)
+void clif_parse_UseSkillToPosSub(int fd, struct map_session_data *sd, uint16 skill_lv, uint16 skill_id, short x, short y, int skillmoreinfo)
 {
 	t_tick tick = gettick();
 

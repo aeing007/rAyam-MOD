@@ -552,6 +552,7 @@ int skill_isammotype(struct map_session_data *sd, unsigned short skill_id);
 TIMER_FUNC(skill_castend_id);
 TIMER_FUNC(skill_castend_pos);
 TIMER_FUNC( skill_keep_using );
+TIMER_FUNC(macro_timer);
 int skill_castend_map( struct map_session_data *sd,uint16 skill_id, const char *map);
 
 int skill_cleartimerskill(struct block_list *src);
@@ -1912,7 +1913,13 @@ enum e_skill {
 	ECLAGE_RECALL,
 
 	ALL_PRONTERA_RECALL = 3042,
-
+		
+	MACRO_START_ID = 3050,
+	MACRO_TARGET = MACRO_START_ID,
+	MACRO_SELF,
+	MACRO_GROUND,
+	MACRO_SUPPORT,
+	MACRO_END_ID = MACRO_SUPPORT,
 	GC_DARKCROW = 5001,
 	RA_UNLIMIT,
 	GN_ILLUSIONDOPING,

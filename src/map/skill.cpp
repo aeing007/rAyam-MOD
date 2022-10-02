@@ -45,7 +45,7 @@
 #include "script.hpp"
 #include "status.hpp"
 #include "unit.hpp"
-
+#include "pcmacro.hpp"
 using namespace rathena;
 
 #define SKILLUNITTIMER_INTERVAL	100
@@ -328,8 +328,17 @@ e_cast_type skill_get_casttype (uint16 skill_id) {
 int skill_get_range2(struct block_list *bl, uint16 skill_id, uint16 skill_lv, bool isServer) {
 	if( bl->type == BL_MOB && battle_config.mob_ai&0x400 )
 		return 9; //Mobs have a range of 9 regardless of skill used.
+	map_session_data* sd = BL_CAST(BL_PC, bl);
+
+	
+	if (sd && automatons::MacroCollection::skill_is_macro_starter(skill_id)){
+		automatons::Sequence& sequence = sd->macros.get_current_macro_sequence();
+		if(sequence.skill_reference_for_macro_range !=  0)
+			skill_id = sequence.skill_reference_for_macro_range;
+	}
 
 	int32 range = skill_get_range(skill_id, skill_lv);
+
 
 	if( range < 0 ) {
 		if( battle_config.use_weapon_skill_range&bl->type )
@@ -3802,6 +3811,11 @@ int64 skill_attack (int attack_type, struct block_list* src, struct block_list *
 		case NPC_EARTHQUAKE:
 			dmg.dmotion = clif_skill_damage(src, bl, tick, dmg.amotion, dmg.dmotion, damage, dmg.div_, skill_id, -1, DMG_ENDURE);
 			break;
+		case MACRO_TARGET:
+		case MACRO_SELF:
+		case MACRO_GROUND:
+		case MACRO_SUPPORT:
+			break;
 		case NPC_DARKPIERCING:
 		case EL_FIRE_BOMB:
 		case EL_FIRE_BOMB_ATK:
@@ -4987,7 +5001,67 @@ static int skill_tarotcard(struct block_list* src, struct block_list *target, ui
 
 	return card;
 }
+TIMER_FUNC(macro_timer) {
+	using namespace automatons;
+	struct map_session_data* sd = nullptr;
+	if (!(sd = map_id2sd(id))) {
+		return 0;
+	}
+	Sequence& sequence = sd->macros.get_current_macro_sequence();
+	if (sequence.remaining_steps <= 0) {
+		sequence.tid = INVALID_TIMER;
+		return 0;
+	}
 
+	int action = sequence.total_steps - sequence.remaining_steps;
+	sequence.remaining_steps--;
+	Step& step = sequence.get_step(action);
+	Step::Type type = step.type;
+	if (step.manipulated_object_id <= 0) {
+		return 0;
+	}
+	t_tick next_tick = 0;
+	std::shared_ptr<item_data> item_d;
+	switch (type) {
+		case Step::Type::SKILL: {
+			int skill_lv = pc_checkskill(sd, step.manipulated_object_id);
+			int inf = skill_get_inf(step.manipulated_object_id);
+			if (inf & INF_GROUND_SKILL) {
+				int x = step.target >> 16;
+				int y = step.target & (((unsigned int)1 << 16) - 1);
+				clif_parse_UseSkillToPosSub(0, sd, skill_lv,  step.manipulated_object_id, x, y, 0);
+
+			} else {
+				clif_parse_skill_toid(sd, step.manipulated_object_id, skill_lv, step.target);
+			}
+			break;
+		}
+		case Step::Type::EQUIPMENT: {
+			if (item_d = itemdb_exists(step.manipulated_object_id)) {
+				int j;
+				for (j = MAX_INVENTORY - 1; j >=0; j--) { //start looping from the end because unequipped items are placed last
+					if (sd->inventory.u.items_inventory[j].nameid == step.manipulated_object_id) {
+						if (!sd->inventory.u.items_inventory[j].equip)
+							pc_equipitem(sd, j, item_d->equip);
+						//break; //don't break to allow switching same equip
+					}
+				}
+			}
+			if (sequence.remaining_steps <= 0) {
+				sequence.tid = INVALID_TIMER;
+				return 0;
+			}
+			if (sequence.get_step(action + 1).type == Step::Type::SKILL)
+				sequence.tid = add_timer(sequence.delay_before_next_skill, macro_timer, sd->bl.id, 0);
+			else if(sequence.get_step(action + 1).type == Step::Type::EQUIPMENT)
+				sequence.tid = add_timer(sd->canequip_tick, macro_timer, sd->bl.id, 0);
+			break;
+		}
+	}
+	if(sequence.remaining_steps <= 0)
+		sequence.tid = INVALID_TIMER;
+	return 0;
+}
 /*==========================================
  *
  *
@@ -5165,7 +5239,8 @@ int skill_castend_damage_id (struct block_list* src, struct block_list *bl, uint
 	case ABR_INFINITY_BUSTER:
 		skill_attack(BF_WEAPON,src,src,bl,skill_id,skill_lv,tick,flag);
 		break;
-
+	case MACRO_TARGET:
+         break;
 	case IG_SHIELD_SHOOTING:
 		clif_skill_nodamage(src, bl, skill_id, skill_lv, 1);
 		skill_attack(BF_WEAPON, src, src, bl, skill_id, skill_lv, tick, flag);
@@ -9440,9 +9515,12 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, ui
 						break;
 					}
 				} else if (!dstsd || map_flag_vs(bl->m)) //HP damage only on pvp-maps when against players.
-					hp = tstatus->max_hp/50; //Recover 2% HP [Skotlex]
-
-				clif_skill_nodamage(src,bl,skill_id,skill_lv,1);
+					hp = tstatus->max_hp / 50; //Recover 2% HP [Skotlex]
+				if (sd && automatons::MacroCollection::find_if_one_macro_is_active(sd->macros)){
+					automatons::Sequence& sequence = sd->macros.get_current_macro_sequence();
+					sequence.set_tick(tick + automatons::Step::animation_additional_delay);
+				}
+				clif_skill_nodamage(src, bl, skill_id, skill_lv, 1);
 				unit_skillcastcancel(bl,0);
 				sp = skill_get_sp(bl_skill_id,bl_skill_lv);
 				status_zap(bl, hp, sp);
@@ -10072,6 +10150,10 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, ui
 
 				map_freeblock_unlock();
 				return 0;
+			}
+			if (sd && automatons::MacroCollection::find_if_one_macro_is_active(sd->macros)) {
+				automatons::Sequence& sequence = sd->macros.get_current_macro_sequence();
+				sequence.set_tick(automatons::Step::animation_additional_delay + tick);
 			}
 			status_zap(src,0,skill_get_sp(skill_id,skill_lv)); // consume sp only if succeeded [Inkfish]
 			card = skill_tarotcard(src, bl, skill_id, skill_lv, tick); // actual effect is executed here
@@ -12524,7 +12606,9 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, ui
 		skill_castend_song(src, skill_id, skill_lv, tick);
 		break;
 #endif
-
+	case MACRO_SELF:
+	case MACRO_SUPPORT:
+		break;
 	default: {
 		std::shared_ptr<s_skill_db> skill = skill_db.find(skill_id);
 		ShowWarning("skill_castend_nodamage_id: missing code case for skill %s(%d)\n", skill ? skill->name : "UNKNOWN", skill_id);
@@ -12961,6 +13045,14 @@ TIMER_FUNC(skill_castend_id){
 			ShowInfo("Type %d, ID %d skill castend id [id =%d, lv=%d, target ID %d]\n",
 				src->type, src->id, ud->skill_id, ud->skill_lv, target->id);
 
+		if (sd) {
+			automatons::Sequence& sequence = sd->macros.get_current_macro_sequence();
+			if (sequence.is_active() && !automatons::MacroCollection::skill_is_macro_starter(ud->skill_id)) {
+				t_tick cast_tick = max(sd->ud.canact_tick, gettick() + status_get_adelay(&sd->bl));
+				t_tick equip_tick = sd->canequip_tick;
+				sequence.add_action_timer(cast_tick, equip_tick, ud->skill_id, sd->bl.id);
+			}
+		}
 		map_freeblock_lock();
 
 		if (skill_get_casttype(ud->skill_id) == CAST_NODAMAGE)
@@ -13053,6 +13145,15 @@ TIMER_FUNC(skill_castend_id){
 			if (sd->skill_keep_using.tid != INVALID_TIMER) {
 				delete_timer(sd->skill_keep_using.tid, skill_keep_using);
 				sd->skill_keep_using.tid = INVALID_TIMER;
+			}
+		}
+
+		if (sd) {
+			automatons::Sequence& sequence = sd->macros.get_current_macro_sequence();
+			if (sequence.is_active() && !automatons::MacroCollection::skill_is_macro_starter(ud->skill_id)) {
+				t_tick cast_tick = max(sd->ud.canact_tick, gettick() + status_get_adelay(&sd->bl));
+				t_tick equip_tick = sd->canequip_tick;
+				sequence.add_failed_skill_timer(cast_tick, equip_tick, ud->skill_id, sd->bl.id);
 			}
 		}
 	} else if (md)
@@ -13170,9 +13271,19 @@ TIMER_FUNC(skill_castend_pos){
 //				break;
 //			}
 //		}
+
+		if (sd) {
+			automatons::Sequence& sequence = sd->macros.get_current_macro_sequence();
+			if (sequence.is_active() && !automatons::MacroCollection::skill_is_macro_starter(ud->skill_id)) {
+				t_tick cast_tick = max(sd->ud.canact_tick, gettick() + status_get_adelay(&sd->bl));
+				t_tick equip_tick = sd->canequip_tick;
+				sequence.add_action_timer(cast_tick, equip_tick, ud->skill_id, sd->bl.id);
+			}
+		}
 		unit_set_walkdelay(src, tick, battle_config.default_walk_delay+skill_get_walkdelay(ud->skill_id, ud->skill_lv), 1);
 		map_freeblock_lock();
 		skill_castend_pos2(src,ud->skillx,ud->skilly,ud->skill_id,ud->skill_lv,tick,0);
+
 
 		if (ud->skill_id != RA_CAMOUFLAGE)
 			status_change_end(src, SC_CAMOUFLAGE); // Applies to the first skill if active
@@ -13190,8 +13301,20 @@ TIMER_FUNC(skill_castend_pos){
 		return 1;
 	} while(0);
 
+
+	if (sd) {
+		automatons::Sequence& sequence = sd->macros.get_current_macro_sequence();
+		if (sequence.is_active() && !automatons::MacroCollection::skill_is_macro_starter(ud->skill_id)) {
+			t_tick cast_tick = max(sd->ud.canact_tick, gettick() + status_get_adelay(&sd->bl));
+			t_tick equip_tick = sd->canequip_tick;
+			sequence.add_failed_skill_timer(cast_tick, equip_tick, ud->skill_id, sd->bl.id);
+		}
+	}
+
+
 	if( !sd || sd->skillitem != ud->skill_id || skill_get_delay(ud->skill_id,ud->skill_lv) )
 		ud->canact_tick = tick;
+
 	ud->skill_id = ud->skill_lv = 0;
 	if(sd)
 		sd->skillitem = sd->skillitemlv = sd->skillitem_keep_requirement = 0;
@@ -13660,18 +13783,24 @@ int skill_castend_pos2(struct block_list* src, int x, int y, uint16 skill_id, ui
 		}
 		break;
 
-	case HW_GANBANTEIN:
-		if (rnd()%100 < 80) {
+	case HW_GANBANTEIN: {
+		if (rnd() % 100 < 80) {
 			int dummy = 1;
-			clif_skill_poseffect(src,skill_id,skill_lv,x,y,tick);
+			clif_skill_poseffect(src, skill_id, skill_lv, x, y, tick);
 			i = skill_get_splash(skill_id, skill_lv);
-			map_foreachinallarea(skill_cell_overlap, src->m, x-i, y-i, x+i, y+i, BL_SKILL, HW_GANBANTEIN, &dummy, src);
+			map_foreachinallarea(skill_cell_overlap, src->m, x - i, y - i, x + i, y + i, BL_SKILL, HW_GANBANTEIN, &dummy, src);
 		} else {
-			if (sd) clif_skill_fail(sd,skill_id,USESKILL_FAIL_LEVEL,0);
+			if (sd){
+				clif_skill_fail(sd, skill_id, USESKILL_FAIL_LEVEL, 0);
+				if (automatons::MacroCollection::find_if_one_macro_is_active(sd->macros)) {
+					t_tick ajusted_tick = max(sd->ud.canact_tick, tick + status_get_adelay(&sd->bl));
+					automatons::Sequence::remove_fixed_delay_if_next_step_is_skill(sd->macros.get_current_macro_sequence(), sd->bl.id, ajusted_tick);
+				}
+			}
 			return 1;
 		}
 		break;
-
+	}
 #ifndef RENEWAL
 	case HW_GRAVITATION:
 		if ((sg = skill_unitsetting(src,skill_id,skill_lv,x,y,0)))
@@ -14121,7 +14250,10 @@ int skill_castend_pos2(struct block_list* src, int x, int y, uint16 skill_id, ui
 				skill_unitsetting(src, AG_ALL_BLOOM_ATK2, skill_lv, x, y, flag + i * unit_interval);
 		}
 		break;
+	case MACRO_GROUND: {
 
+		break;
+	}
 	default:
 		ShowWarning("skill_castend_pos2: Unknown skill used:%d\n",skill_id);
 		return 1;
@@ -16771,6 +16903,8 @@ bool skill_check_condition_castbegin(struct map_session_data* sd, uint16 skill_i
 
 	if( sd->skillitem == skill_id )
 	{
+		if (automatons::MacroCollection::skill_is_macro_starter(skill_id))
+			return true;
 		if( sd->state.abra_flag ) // Hocus-Pocus was used. [Inkfish]
 			sd->state.abra_flag = 0;
 		else

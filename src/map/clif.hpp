@@ -1188,6 +1188,7 @@ void clif_equipswitch_reply( struct map_session_data* sd, bool failed );
 void clif_pet_evolution_result( struct map_session_data* sd, e_pet_evolution_result result );
 
 void clif_parse_skill_toid( struct map_session_data* sd, uint16 skill_id, uint16 skill_lv, int target_id );
+void clif_parse_UseSkillToPosSub(int fd, struct map_session_data* sd, uint16 skill_lv, uint16 skill_id, short x, short y, int skillmoreinfo);
 
 void clif_inventory_expansion_info( struct map_session_data* sd );
 
