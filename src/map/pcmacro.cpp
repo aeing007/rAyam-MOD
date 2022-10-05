@@ -102,7 +102,7 @@ void Sequence::add_failed_skill_timer(t_tick casting_tick,t_tick equip_tick, int
 
 void Sequence::set_tick(t_tick new_tick){
 	if(this->remaining_steps > 0)
-		sett_tickimer(this->tid, new_tick);
+		settick_timer(this->tid, new_tick);
 }
 void Sequence::reset(){
 	this->tid = INVALID_TIMER;
@@ -132,8 +132,8 @@ bool Step::is_animation_canceller() {
 
 void Sequence::remove_fixed_delay_if_next_step_is_skill(Sequence& sequence, int source_id,t_tick ajusted_tick) {
 	Step& next_step = sequence.get_step(sequence.total_steps - sequence.remaining_steps);
-	if (sequence.is_active() && next_step.type == Step::Type::SKILL && ajusted_tick < Step::animation_additional_delay+gettick()) {
-		sett_tickimer(sequence.tid, ajusted_tick);
+	if (sequence.is_active() && next_step.type == Step::Type::SKILL && ajusted_tick < Step::animation_additional_delay+gettick()) {	  
+		sequence.set_tick(ajusted_tick);
 	}
 		
 }
