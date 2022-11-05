@@ -930,6 +930,8 @@ struct map_session_data {
 	} captcha_upload;
 
 	s_macro_detect macro_detect;
+
+	std::shared_ptr<std::vector<std::vector<int>>> autorestock;
 };
 
 extern struct eri *pc_sc_display_ers; /// Player's SC display table

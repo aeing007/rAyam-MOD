@@ -54,7 +54,7 @@ bool storage_exists(uint8 id);
 
 int storage_delitem(struct map_session_data* sd, struct s_storage *stor, int index, int amount);
 int storage_storageopen(struct map_session_data *sd);
-void storage_storageadd(struct map_session_data *sd, struct s_storage *stor, int index, int amount);
+int storage_storageadd(struct map_session_data *sd, struct s_storage *stor, int index, int amount);
 void storage_storageget(struct map_session_data *sd, struct s_storage *stor, int index, int amount);
 void storage_storageaddfromcart(struct map_session_data *sd, struct s_storage *stor, int index, int amount);
 void storage_storagegettocart(struct map_session_data *sd, struct s_storage *stor, int index, int amount);

@@ -332,20 +332,20 @@ int storage_delitem(struct map_session_data* sd, struct s_storage *stor, int ind
  * @param amount : number of item to take
  * @return 0:fail, 1:success
  */
-void storage_storageadd(struct map_session_data* sd, struct s_storage *stor, int index, int amount)
+int storage_storageadd(struct map_session_data* sd, struct s_storage *stor, int index, int amount)
 {
 	enum e_storage_add result;
 
-	nullpo_retv(sd);
+	nullpo_ret(sd);
 
 	result = storage_canAddItem(stor, index, sd->inventory.u.items_inventory, amount, MAX_INVENTORY);
 	if (result == STORAGE_ADD_INVALID)
-		return;
+		return 0;
 	else if (result == STORAGE_ADD_OK) {
 		switch( storage_additem(sd, stor, &sd->inventory.u.items_inventory[index], amount) ){
 			case 0:
 				pc_delitem(sd,index,amount,0,4,LOG_TYPE_STORAGE);
-				return;
+				return 1;
 			case 1:
 				break;
 			case 2:
@@ -356,6 +356,7 @@ void storage_storageadd(struct map_session_data* sd, struct s_storage *stor, int
 
 	clif_storageitemremoved(sd,index,0);
 	clif_dropitem(sd,index,0);
+	return 0;
 }
 
 /**
