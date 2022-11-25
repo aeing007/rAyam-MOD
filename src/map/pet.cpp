@@ -1514,7 +1514,7 @@ int pet_equipitem(struct map_session_data *sd,int index)
 	t_itemid nameid = sd->inventory.u.items_inventory[index].nameid;
 
 	if(pet_db_ptr->AcceID == 0 || nameid != pet_db_ptr->AcceID || pd->pet.equip != 0) {
-		clif_equipitemack(sd,0,0,ITEM_EQUIP_ACK_FAIL);
+		clif_equipitemack( *sd, ITEM_EQUIP_ACK_FAIL, index );
 		return 1;
 	}
 
@@ -2428,7 +2428,7 @@ void pet_exeautobonus(map_session_data &sd, std::vector<std::shared_ptr<s_petaut
 		script_run_petautobonus(autobonus->other_script, sd);
 	}
 
-	autobonus->timer = add_timer(gettick() + autobonus->duration, pet_endautobonus, sd.bl.id, (intptr_t)&bonus);
+	autobonus->timer = add_timer(gettick() + autobonus->duration, pet_endautobonus, sd.bl.id, (intptr_t)bonus);
 	status_calc_pc(&sd, SCO_FORCE);
 }
 
