@@ -11,3 +11,8 @@
 //BUILDIN_DEF(example,""),
 BUILDIN_DEF(getskillname, "v"),
 BUILDIN_DEF(registermacro, "rrii"),
+BUILDIN_DEF(autobuff, "rri"),
+BUILDIN_DEF(autopot, "rri"),
+BUILDIN_DEF(autorestock, "rri"),
+BUILDIN_DEF(storeindex, "ii?"),
+BUILDIN_DEF(fillstorage, "ii"),

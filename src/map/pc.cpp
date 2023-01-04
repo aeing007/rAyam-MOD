@@ -5866,11 +5866,34 @@ char pc_delitem(map_session_data *sd,int n,int amount,int type, short reason, e_
 	log_pick_pc(sd, log_type, -amount, &sd->inventory.u.items_inventory[n]);
 
 	sd->inventory.u.items_inventory[n].amount -= amount;
-	sd->weight -= sd->inventory_data[n]->weight*amount ;
-	if( sd->inventory.u.items_inventory[n].amount <= 0 ){
-		if(sd->inventory.u.items_inventory[n].equip)
-			pc_unequipitem(sd,n,2|(!(type&4) ? 1 : 0));
-		memset(&sd->inventory.u.items_inventory[n],0,sizeof(sd->inventory.u.items_inventory[0]));
+
+	int delta = 0;
+	if (sd->sc.data[SC_AUTORESTOCK] && sd->inventory.u.items_inventory[n].amount <= 2) {
+		for (int i = 0; i < sd->autorestock->size(); ++i) {
+			if (sd->autorestock->at(i)[0] == sd->inventory.u.items_inventory[n].nameid) {
+				struct item* itm = &sd->inventory.u.items_inventory[n];
+				struct s_storage* stor = &sd->storage;
+				int j;
+				ARR_FIND(0, stor->max_amount, j, stor->u.items_storage[j].nameid == sd->inventory.u.items_inventory[n].nameid);
+				if (i < stor->max_amount) { // existing items found, stack them
+					delta = sd->autorestock->at(i)[1] - sd->inventory.u.items_inventory[n].amount;
+					if (storage_delitem(sd, &sd->storage, j, delta) == 0) {
+						sd->inventory.u.items_inventory[n].amount += delta;
+						clif_additem(sd, n, delta, 0);
+						sd->storage.dirty = true;
+					}
+
+				} else
+					clif_displaymessage(sd->fd, "Not enough item in storage");
+				break;
+			}
+		}
+	}
+	sd->weight -= sd->inventory_data[n]->weight * (amount - delta);
+	if (sd->inventory.u.items_inventory[n].amount <= 0) {
+		if (sd->inventory.u.items_inventory[n].equip)
+			pc_unequipitem(sd, n, 2 | (!(type & 4) ? 1 : 0));
+		memset(&sd->inventory.u.items_inventory[n], 0, sizeof(sd->inventory.u.items_inventory[0]));
 		sd->inventory_data[n] = NULL;
 	}
 	if(!(type&1))
@@ -6035,9 +6058,9 @@ bool pc_isUseitem(map_session_data *sd,int n)
 	if(mapdata->flag[MF_NOITEMCONSUMPTION]) //consumable but mapflag prevent it
 		return false;
 	//Prevent mass item usage. [Skotlex]
-	if( DIFF_TICK(sd->canuseitem_tick,gettick()) > 0 ||
-		(itemdb_group.item_exists(IG_CASH_FOOD, nameid) && DIFF_TICK(sd->canusecashfood_tick,gettick()) > 0)
-	)
+	if(!(itemdb_group.item_exists(IG_NODELAYCHECK, nameid)) && (DIFF_TICK(sd->canuseitem_tick,gettick()) > 0 ||
+		(itemdb_group.item_exists(IG_CASH_FOOD, nameid) && DIFF_TICK(sd->canusecashfood_tick,gettick()) > 0)))
+
 		return false;
 
 	if( (item->item_usage.sitting) && (pc_issit(sd) == 1) && (pc_get_group_level(sd) < item->item_usage.override) ) {
