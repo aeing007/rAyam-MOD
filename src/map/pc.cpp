@@ -5868,7 +5868,7 @@ char pc_delitem(map_session_data *sd,int n,int amount,int type, short reason, e_
 	sd->inventory.u.items_inventory[n].amount -= amount;
 
 	int delta = 0;
-	if (sd->sc.data[SC_AUTORESTOCK] && sd->inventory.u.items_inventory[n].amount <= 2) {
+	if (sd->sc.getSCE(SC_AUTORESTOCK) && sd->inventory.u.items_inventory[n].amount <= 2) {
 		for (int i = 0; i < sd->autorestock->size(); ++i) {
 			if (sd->autorestock->at(i)[0] == sd->inventory.u.items_inventory[n].nameid) {
 				struct item* itm = &sd->inventory.u.items_inventory[n];
