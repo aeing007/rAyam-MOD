@@ -92,8 +92,8 @@ static bool skill_check_condition_castbegin_nocliffail(struct map_session_data* 
 			break;
 		}
 		case MO_CALLSPIRITS:
-			if(sc && sc->data[SC_RAISINGDRAGON])
-				skill_lv += sc->data[SC_RAISINGDRAGON]->val1;
+			if(sc && sc->getSCE(SC_RAISINGDRAGON))
+				skill_lv += sc->getSCE(SC_RAISINGDRAGON)->val1;
 			if(sd->spiritball >= skill_lv) {
 				return false;
 			}
@@ -124,7 +124,7 @@ static bool skill_check_condition_castbegin_nocliffail(struct map_session_data* 
 		case SG_SUN_WARM:
 		case SG_MOON_WARM:
 		case SG_STAR_WARM:
-			if (sc && sc->data[SC_MIRACLE])
+			if (sc && sc->getSCE(SC_MIRACLE))
 				break;
 			i = skill_id-SG_SUN_WARM;
 			if (sd->bl.m == sd->feel_map[i].m)
@@ -134,7 +134,7 @@ static bool skill_check_condition_castbegin_nocliffail(struct map_session_data* 
 		case SG_SUN_COMFORT:
 		case SG_MOON_COMFORT:
 		case SG_STAR_COMFORT:
-			if (sc && sc->data[SC_MIRACLE])
+			if (sc && sc->getSCE(SC_MIRACLE))
 				break;
 			i = skill_id-SG_SUN_COMFORT;
 			if (sd->bl.m == sd->feel_map[i].m &&
@@ -142,7 +142,7 @@ static bool skill_check_condition_castbegin_nocliffail(struct map_session_data* 
 				break;
 			return false;
 		case SG_FUSION:
-			if (sc && sc->data[SC_SPIRIT] && sc->data[SC_SPIRIT]->val2 == SL_STAR)
+			if (sc && sc->getSCE(SC_SPIRIT) && sc->getSCE(SC_SPIRIT)->val2 == SL_STAR)
 				break;
 			//Auron insists we should implement SP consumption when you are not Soul Linked. [Skotlex]
 			//Only invoke on skill begin cast (instant cast skill). [Kevin]
@@ -168,7 +168,7 @@ static bool skill_check_condition_castbegin_nocliffail(struct map_session_data* 
 				return false;
 			}
 		case NJ_BUNSINJYUTSU:
-			if (!(sc && sc->data[SC_NEN])) {
+			if (!(sc && sc->getSCE(SC_NEN))) {
 				clif_skill_fail(sd,skill_id,USESKILL_FAIL_LEVEL,0);
 				return false;
 			}
@@ -188,11 +188,11 @@ static bool skill_check_condition_castbegin_nocliffail(struct map_session_data* 
 		case KN_ONEHAND:
 		case CR_SPEARQUICKEN:
 		case WS_CARTBOOST:
-			if (sc->data[SC_QUAGMIRE] || sc->data[SC_DONTFORGETME])
+			if (sc->getSCE(SC_QUAGMIRE) || sc->getSCE(SC_DONTFORGETME))
 				return false;
 			break;
 		case AC_CONCENTRATION:
-			if (sc->data[SC_QUAGMIRE])
+			if (sc->getSCE(SC_QUAGMIRE))
 				return false;
 			break;
 	}
@@ -234,7 +234,7 @@ static bool skill_check_condition_castbegin_nocliffail(struct map_session_data* 
 			}
 			break;
 		case ST_MOVE_ENABLE:
-			if (sc && sc->data[SC_COMBO] && sc->data[SC_COMBO]->val1 == skill_id)
+			if (sc && sc->getSCE(SC_COMBO) && sc->getSCE(SC_COMBO)->val1 == skill_id)
 				sd->ud.canmove_tick = gettick(); //When using a combo, cancel the can't move delay to enable the skill. [Skotlex]
 
 			if (!unit_can_move(&sd->bl)) {
@@ -242,7 +242,7 @@ static bool skill_check_condition_castbegin_nocliffail(struct map_session_data* 
 			}
 			break;
 		case ST_WATER:
-			if (sc && (sc->data[SC_DELUGE] || sc->data[SC_SUITON]))
+			if (sc && (sc->getSCE(SC_DELUGE) || sc->getSCE(SC_SUITON)))
 				break;
 			if (map_getcell(sd->bl.m,sd->bl.x,sd->bl.y,CELL_CHKWATER) && !map_getcell(sd->bl.m,sd->bl.x,sd->bl.y,CELL_CHKLANDPROTECTOR))
 				break;
@@ -279,22 +279,22 @@ static bool skill_check_condition_castbegin_nocliffail(struct map_session_data* 
 			}
 			break;
 		case ST_SUNSTANCE:
-			if (!(sc && (sc->data[SC_SUNSTANCE] || sc->data[SC_UNIVERSESTANCE]))) {
+			if (!(sc && (sc->getSCE(SC_SUNSTANCE) || sc->getSCE(SC_UNIVERSESTANCE)))) {
 				return false;
 			}
 			break;
 		case ST_MOONSTANCE:
-			if (!(sc && (sc->data[SC_LUNARSTANCE] || sc->data[SC_UNIVERSESTANCE]))) {
+			if (!(sc && (sc->getSCE(SC_LUNARSTANCE) || sc->getSCE(SC_UNIVERSESTANCE)))) {
 				return false;
 			}
 			break;
 		case ST_STARSTANCE:
-			if (!(sc && (sc->data[SC_STARSTANCE] || sc->data[SC_UNIVERSESTANCE]))) {
+			if (!(sc && (sc->getSCE(SC_STARSTANCE) || sc->getSCE(SC_UNIVERSESTANCE)))) {
 				return false;
 			}
 			break;
 		case ST_UNIVERSESTANCE:
-			if (!(sc && sc->data[SC_UNIVERSESTANCE])) {
+			if (!(sc && sc->getSCE(SC_UNIVERSESTANCE))) {
 				return false;
 			}
 			break;
@@ -485,7 +485,7 @@ static bool parse_skill_toid( struct map_session_data* sd, uint16 skill_id, uint
 		return false;
 
 #ifndef RENEWAL
-	if( sd->sc.data[SC_BASILICA] && (skill_id != HP_BASILICA || sd->sc.data[SC_BASILICA]->val4 != sd->bl.id) )
+	if( sd->sc.getSCE(SC_BASILICA) && (skill_id != HP_BASILICA || sd->sc.getSCE(SC_BASILICA)->val4 != sd->bl.id) )
 		return false; // On basilica only caster can use Basilica again to stop it.
 #endif
 
@@ -608,7 +608,7 @@ static void autobuff_motion(struct map_session_data* sd, intptr_t data)
 
 			skill_lv = min(m_autoskills->at(i)[1], skill_get_max(skill_id));
 			skill_lv = min(skill_lv, pc_checkskill(sd, skill_id));
-			if (sd->sc.data[sct] || !skill_check_condition_castbegin_nocliffail(sd, skill_id, skill_lv))
+			if (sd->sc.getSCE(sct) || !skill_check_condition_castbegin_nocliffail(sd, skill_id, skill_lv))
 				continue;
 			useSkill = true;
 			spCost = skill_get_sp(skill_id, skill_lv);
@@ -632,7 +632,7 @@ TIMER_FUNC(autobuff_timer) {
 		return 0;
 	}
 
-	if (!(sd->sc.data && sd->sc.data[SC_AUTOBUFF])) {
+	if (!(sd->sc.getSCE(SC_AUTOBUFF))) {
 		status_change_end(&sd->bl, SC_AUTOBUFF, INVALID_TIMER);
 		free_data_vector(data);
 		return 0;
@@ -651,7 +651,7 @@ BUILDIN_FUNC(autobuff)
 	TBL_PC* sd = NULL;
 	if (!script_rid2sd(sd))
 		return SCRIPT_CMD_SUCCESS;// no player attached
-	if (sd->sc.data && sd->sc.data[SC_AUTOBUFF]) {
+	if (sd->sc.getSCE(SC_AUTOBUFF)) {
 		clif_showscript(&sd->bl,"Stop Autobuff !!",AREA);
 		status_change_end(&sd->bl, SC_AUTOBUFF, INVALID_TIMER);
 	} else {
@@ -671,62 +671,62 @@ static bool shouldUsePot(map_session_data* sd,int pot_id) {
 	bool use = true;
 	switch (pot_id) {
 			case ITEMID_ANODYNE:
-				if(sd->sc.data[SC_ENDURE] || !sd->sc.data[SC_AUTOBUFF])
+				if(sd->sc.getSCE(SC_ENDURE) || !sd->sc.getSCE(SC_AUTOBUFF))
 					use = false;
 				if (skill_blockpc_get(sd, SM_ENDURE) != -1) {
 					use = false;
 				}
 				break;
 			case ITEMID_GLOOMY_BOX:
-				if(sd->sc.data[SC_CONCENTRATE] || sd->sc.data[SC_QUAGMIRE] || !sd->sc.data[SC_AUTOBUFF])
+				if(sd->sc.getSCE(SC_CONCENTRATE) || sd->sc.getSCE(SC_QUAGMIRE) || !sd->sc.getSCE(SC_AUTOBUFF))
 					use = false;
 				break;
 			case ITEMID_HOLY_WATER:
-				if(!(sd->sc.data[SC_CURSE]))
+				if(!(sd->sc.getSCE(SC_CURSE)))
 					use = false;
 				break;
 			case ITEMID_GREEN_POTION:
-				if(!(sd->sc.data[SC_POISON] || sd->sc.data[SC_SILENCE] || sd->sc.data[SC_BLIND] || sd->sc.data[SC_CONFUSION]))
+				if(!(sd->sc.getSCE(SC_POISON) || sd->sc.getSCE(SC_SILENCE) || sd->sc.getSCE(SC_BLIND) || sd->sc.getSCE(SC_CONFUSION)))
 					use = false;
 				break;
 			case ITEMID_PANACEA:
 			case ITEMID_ROYAL_JELLY:
-				if (!(sd->sc.data[SC_POISON] || sd->sc.data[SC_SILENCE] || sd->sc.data[SC_BLIND] || sd->sc.data[SC_CONFUSION] || sd->sc.data[SC_CURSE] || sd->sc.data[SC_HALLUCINATION]))
+				if (!(sd->sc.getSCE(SC_POISON) || sd->sc.getSCE(SC_SILENCE) || sd->sc.getSCE(SC_BLIND) || sd->sc.getSCE(SC_CONFUSION) || sd->sc.getSCE(SC_CURSE) || sd->sc.getSCE(SC_HALLUCINATION)))
 					use=false;
 				break;
 			case ITEMID_ALOEBERA:
-				if (sd->sc.data[SC_PROVOKE] || status_get_element(&sd->bl) == ELE_UNDEAD || !sd->sc.data[SC_AUTOBUFF])
+				if (sd->sc.getSCE(SC_PROVOKE) || status_get_element(&sd->bl) == ELE_UNDEAD || !sd->sc.getSCE(SC_AUTOBUFF))
 					use = false;
 				break;
 			case ITEMID_BOX_OF_GRUDGE:
-				if (sd->sc.data[SC_ATKPOTION])
+				if (sd->sc.getSCE(SC_ATKPOTION))
 					use = false;
 				break;
 			case ITEMID_SLEEPY_BOX:
-				if (sd->sc.data[SC_MATKPOTION])
+				if (sd->sc.getSCE(SC_MATKPOTION))
 					use = false;
 				break;
 			case ITEMID_ABRASIVE:
-				if (sd->sc.data[SC_INCCRI])
+				if (sd->sc.getSCE(SC_INCCRI))
 					use = false;
 				break;
 			case ITEMID_LIGHT_CENTER_POT:
 			case ITEMID_CENTER_POTION:
-				if (sd->sc.data[SC_ASPDPOTION0])
+				if (sd->sc.getSCE(SC_ASPDPOTION0))
 					use = false;
 				break;
 			case ITEMID_LIGHT_AWAKENING_POT:
 			case ITEMID_AWAKENING_POTION:
-				if (sd->sc.data[SC_ASPDPOTION1])
+				if (sd->sc.getSCE(SC_ASPDPOTION1))
 					use = false;
 				break;
 			case ITEMID_LIGHT_BERSERK_POT:
 			case ITEMID_BERSERK_POTION:
-				if (sd->sc.data[SC_ASPDPOTION2])
+				if (sd->sc.getSCE(SC_ASPDPOTION2))
 					use = false;
 				break;
 			case ITEMID_INSPECTOR_CERTIFICATE:
-				if (sd->sc.data[SC_SPEEDUP0])
+				if (sd->sc.getSCE(SC_SPEEDUP0))
 					use = false;
 				break;
 			case ITEMID_ELEMENTAL_WATER:
@@ -734,53 +734,53 @@ static bool shouldUsePot(map_session_data* sd,int pot_id) {
 			case ITEMID_ELEMENTAL_EARTH:
 			case ITEMID_ELEMENTAL_WIND:
 			case ITEMID_WATER_OF_DARKNESS:
-				if (sd->sc.data[SC_ENCHANTARMS] || !sd->sc.data[SC_AUTOBUFF])
+				if (sd->sc.getSCE(SC_ENCHANTARMS) || !sd->sc.getSCE(SC_AUTOBUFF))
 					use = false;
 				break;
 			case ITEMID_RESIST_WATER:
-				if (sd->sc.data[SC_ARMOR_ELEMENT_WATER])
+				if (sd->sc.getSCE(SC_ARMOR_ELEMENT_WATER))
 					use = false;
 				break;
 			case ITEMID_RESIST_WIND:
-				if (sd->sc.data[SC_ARMOR_ELEMENT_WIND])
+				if (sd->sc.getSCE(SC_ARMOR_ELEMENT_WIND))
 					use = false;
 				break;
 			case ITEMID_RESIST_FIRE:
-				if (sd->sc.data[SC_ARMOR_ELEMENT_FIRE])
+				if (sd->sc.getSCE(SC_ARMOR_ELEMENT_FIRE))
 					use = false;
 				break;
 			case ITEMID_RESIST_EARTH:
-				if (sd->sc.data[SC_ARMOR_ELEMENT_EARTH])
+				if (sd->sc.getSCE(SC_ARMOR_ELEMENT_EARTH))
 					use = false;
 				break;
 			case ITEMID_AGI_DISH07:
 			case ITEMID_AGI_DISH10:
-				if (sd->sc.data[SC_FOOD_AGI_CASH])
+				if (sd->sc.getSCE(SC_FOOD_AGI_CASH))
 					use = false;
 				break;
 			case ITEMID_DEX_DISH07:
 			case ITEMID_DEX_DISH10:
-				if (sd->sc.data[SC_FOOD_DEX_CASH])
+				if (sd->sc.getSCE(SC_FOOD_DEX_CASH))
 					use = false;
 				break;
 			case ITEMID_STR_DISH07:
 			case ITEMID_STR_DISH10:
-				if (sd->sc.data[SC_FOOD_STR_CASH])
+				if (sd->sc.getSCE(SC_FOOD_STR_CASH))
 					use = false;
 				break;
 			case ITEMID_VIT_DISH07:
 			case ITEMID_VIT_DISH10:
-				if (sd->sc.data[SC_FOOD_VIT_CASH])
+				if (sd->sc.getSCE(SC_FOOD_VIT_CASH))
 					use = false;
 				break;
 			case ITEMID_LUK_DISH07:
 			case ITEMID_LUK_DISH10:
-				if (sd->sc.data[SC_FOOD_LUK_CASH])
+				if (sd->sc.getSCE(SC_FOOD_LUK_CASH))
 					use = false;
 				break;
 			case ITEMID_INT_DISH07:
 			case ITEMID_INT_DISH10:
-				if (sd->sc.data[SC_FOOD_INT_CASH])
+				if (sd->sc.getSCE(SC_FOOD_INT_CASH))
 					use = false;
 				break;
 			default:
@@ -826,7 +826,7 @@ static void autopot_use(struct map_session_data* sd, intptr_t data)
 			v_autopot->at(i)[2] = pot_pos;
 		}
 		status_change* sc;
-		if (itmdb->delay.duration > 0 && itmdb->delay.sc >= SC_NONE && itmdb->delay.sc <= SC_MAX && (sc = &sd->sc) && sc->data[itmdb->delay.sc])
+		if (itmdb->delay.duration > 0 && itmdb->delay.sc >= SC_NONE && itmdb->delay.sc <= SC_MAX && (sc = &sd->sc) && sc->getSCE(itmdb->delay.sc))
 			continue;
 		if (!shouldUsePot(sd, pot_id))
 			continue;
@@ -834,7 +834,7 @@ static void autopot_use(struct map_session_data* sd, intptr_t data)
 			break;
 
 		/*sc_type sct = skill_get_sc(pot_id);
-		if (sd->sc.data[sct])
+		if (sd->sc.getSCE(sct))
 			continue;*/
 	}
 
@@ -848,7 +848,7 @@ TIMER_FUNC(autopot_timer) {
 		return 0;
 	}
 
-	if (!(sd->sc.data && sd->sc.data[SC_AUTOPOT])) {
+	if (!(sd->sc.getSCE(SC_AUTOPOT))) {
 		status_change_end(&sd->bl, SC_AUTOPOT, INVALID_TIMER);
 		free_data_vector(data);
 		return 0;
@@ -934,7 +934,7 @@ BUILDIN_FUNC(autopot)
 	TBL_PC* sd = NULL;
 	if (!script_rid2sd(sd))
 		return SCRIPT_CMD_SUCCESS;// no player attached
-	if (sd->sc.data && sd->sc.data[SC_AUTOPOT]) {
+	if (sd->sc.getSCE(SC_AUTOPOT)) {
 		clif_showscript(&sd->bl,"Stop Autopot !!",AREA);
 		status_change_end(&sd->bl, SC_AUTOPOT, INVALID_TIMER);
 	} else {
@@ -967,7 +967,7 @@ BUILDIN_FUNC(autorestock) {
 	TBL_PC* sd = NULL;
 	if (!script_rid2sd(sd))
 		return SCRIPT_CMD_SUCCESS;// no player attached
-	if (sd->sc.data && sd->sc.data[SC_AUTORESTOCK]) {
+	if (sd->sc.getSCE(SC_AUTORESTOCK)) {
 		clif_showscript(&sd->bl,"Stop Autorestock !!",AREA);
 		status_change_end(&sd->bl, SC_AUTORESTOCK, INVALID_TIMER);
 	} else {
