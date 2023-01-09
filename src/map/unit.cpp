@@ -1902,7 +1902,7 @@ int unit_skilluse_id2(struct block_list *src, int target_id, uint16 skill_id, ui
 	}
 	if (skill_id >= MACRO_START_ID && skill_id <= MACRO_END_ID) {
 		if (automatons::MacroCollection::find_if_one_macro_is_active(sd->macros)) {
-			if (!(sc && sc->data[SC_COMBO]))
+			if (!(sc && sc->getSCE(SC_COMBO)))
 			    automatons::MacroCollection::reset_all_macros(sd->macros);
 			return 0;
 		}
