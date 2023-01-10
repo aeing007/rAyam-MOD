@@ -3828,7 +3828,6 @@ int64 skill_attack (int attack_type, struct block_list* src, struct block_list *
 		case MACRO_SUPPORT:
 		case EXPANDED_DUMMY1:
 		case EXPANDED_DUMMY2:
-		case EXPANDED_DUMMY3:
 		case EXPANDED_CHANGE_RANGE:
 			break;
 		case NPC_DARKPIERCING:
@@ -5266,7 +5265,6 @@ int skill_castend_damage_id (struct block_list* src, struct block_list *bl, uint
          break;
 	case EXPANDED_DUMMY1:
 	case EXPANDED_DUMMY2:
-	case EXPANDED_DUMMY3:
 		break;
 	case IG_SHIELD_SHOOTING:
 		clif_skill_nodamage(src, bl, skill_id, skill_lv, 1);
