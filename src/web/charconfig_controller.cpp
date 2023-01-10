@@ -4,7 +4,7 @@
 #include "charconfig_controller.hpp"
 
 #include <string>
-#include <nlohmann/json.hpp>
+#include "../../3rdparty/json/include/nlohmann/json.hpp"
 
 #include "../common/showmsg.hpp"
 #include "../common/sql.hpp"

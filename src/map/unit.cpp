@@ -450,10 +450,11 @@ static TIMER_FUNC(unit_walktoxy_timer)
 		md->walktoxy_fail_count++;
 		clif_fixpos(bl);
 		//Monsters in this situation first use a chase skill, then unlock target and then use an idle skill
-		if (!(++ud->walk_count%WALK_SKILL_INTERVAL))
+		int walk_skill_interval = status_get_mode(bl) & MD_PCBEHAVIOR ? battle_config.walk_skill_interval_pcbehavior : battle_config.walk_skill_interval;
+		if (!(++ud->walk_count%walk_skill_interval))
 			mobskill_use(md, tick, -1);
 		mob_unlocktarget(md, tick);
-		if (!(++ud->walk_count%WALK_SKILL_INTERVAL))
+		if (!(++ud->walk_count%walk_skill_interval))
 			mobskill_use(md, tick, -1);
 		return 0;
 	}
@@ -514,23 +515,23 @@ static TIMER_FUNC(unit_walktoxy_timer)
 		}
 	}
 
-	switch(bl->type) {
+	switch (bl->type) {
 		case BL_PC:
-			if( !sd->npc_ontouch_.empty() )
-				npc_touchnext_areanpc(sd,false);
-			if(map_getcell(bl->m,x,y,CELL_CHKNPC)) {
-				npc_touch_area_allnpc(sd,bl->m,x,y);
+			if (!sd->npc_ontouch_.empty())
+				npc_touchnext_areanpc(sd, false);
+			if (map_getcell(bl->m, x, y, CELL_CHKNPC)) {
+				npc_touch_area_allnpc(sd, bl->m, x, y);
 				if (bl->prev == NULL) // Script could have warped char, abort remaining of the function.
 					return 0;
 			} else
 				sd->areanpc.clear();
 			pc_cell_basilica(sd);
 			break;
-		case BL_MOB:
+		case BL_MOB:{
 			//Movement was successful, reset walktoxy_fail_count
 			md->walktoxy_fail_count = 0;
-			if( map_getcell(bl->m,x,y,CELL_CHKNPC) ) {
-				if( npc_touch_areanpc2(md) )
+			if (map_getcell(bl->m, x, y, CELL_CHKNPC)) {
+				if (npc_touch_areanpc2(md))
 					return 0; // Warped
 			} else
 				md->areanpc_id = 0;
@@ -538,8 +539,9 @@ static TIMER_FUNC(unit_walktoxy_timer)
 				md->min_chase--;
 			// Walk skills are triggered regardless of target due to the idle-walk mob state.
 			// But avoid triggering on stop-walk calls.
-			if(!ud->state.force_walk && tid != INVALID_TIMER &&
-				!(ud->walk_count%WALK_SKILL_INTERVAL) &&
+			int walk_skill_interval = status_get_mode(bl) & MD_PCBEHAVIOR ? battle_config.walk_skill_interval_pcbehavior : battle_config.walk_skill_interval;
+			if (!ud->state.force_walk && tid != INVALID_TIMER &&
+				!(ud->walk_count % walk_skill_interval) &&
 				map[bl->m].users > 0 &&
 				mobskill_use(md, tick, -1)) {
 				if (!(ud->skill_id == NPC_SELFDESTRUCTION && ud->skilltimer != INVALID_TIMER)
@@ -553,6 +555,7 @@ static TIMER_FUNC(unit_walktoxy_timer)
 				clif_move(ud);
 			}
 			break;
+		}
 		case BL_NPC:
 			if (nd->sc.option&OPTION_INVISIBLE)
 				break;
@@ -1619,6 +1622,7 @@ int unit_skilluse_id2(struct block_list *src, int target_id, uint16 skill_id, ui
 		return 0; // Do not continue source is dead
 
 	sd = BL_CAST(BL_PC, src);
+	mob_data* md = BL_CAST(BL_MOB, src);
 	ud = unit_bl2ud(src);
 
 	if(ud == NULL)
@@ -1788,7 +1792,7 @@ int unit_skilluse_id2(struct block_list *src, int target_id, uint16 skill_id, ui
 				sd->skill_lv_old = skill_lv;
 				break;
 			case CR_DEVOTION:
-				if (target->type == BL_PC) {
+				if (target->type == BL_PC || target->type==BL_MOB) {
 					uint8 i = 0, count = min(skill_lv, MAX_DEVOTION);
 
 					ARR_FIND(0, count, i, sd->devotion[i] == target_id);
@@ -1850,13 +1854,35 @@ int unit_skilluse_id2(struct block_list *src, int target_id, uint16 skill_id, ui
 		}
 	}
 
-	if( src->type == BL_MOB ) {
-		switch( skill_id ) {
+	if (src->type == BL_MOB) {
+		mob_data* smd = BL_CAST(BL_MOB, src);
+		block_list* mbl = map_id2bl(smd->master_id);
+		switch (skill_id) {
+			case MO_EXTREMITYFIST:
+			if( !unit_can_move(src) ) {
+				return 0;
+			}
+			break;
+			case CR_DEVOTION:
+				if (target->type == BL_PC || target->type == BL_MOB) {
+					uint8 i = 0, count = min(skill_lv, MAX_DEVOTION);
+
+					ARR_FIND(0, count, i, smd->devotion[i] == target_id);
+					if (i == count) {
+						ARR_FIND(0, count, i, smd->devotion[i] == 0);
+						if (i == count) { // No free slots, skill Fail
+
+							return 0;
+						}
+					}
+				}
+				break;
 			case NPC_SUMMONSLAVE:
 			case NPC_SUMMONMONSTER:
 			case NPC_DEATHSUMMON:
 			case AL_TELEPORT:
-				if( ((TBL_MOB*)src)->master_id && ((TBL_MOB*)src)->special_state.ai )
+				
+				if( mbl && mbl->type!=BL_PC&& smd->master_id && ((TBL_MOB*)src)->special_state.ai ) // player summons can summon
 					return 0;
 		}
 	}
@@ -2043,30 +2069,40 @@ int unit_skilluse_id2(struct block_list *src, int target_id, uint16 skill_id, ui
 	// In official this is triggered even if no cast time.
 	clif_skillcasting(src, src->id, target_id, 0,0, skill_id, skill_lv, skill_get_ele(skill_id, skill_lv), casttime);
 
-	if (sd && target->type == BL_MOB) {
-		TBL_MOB *md = (TBL_MOB*)target;
-
-		mobskill_event(md, src, tick, -1); // Cast targetted skill event.
+	if ((sd || (status_get_mode(src) & MD_PCBEHAVIOR && target != src)) && target->type == BL_MOB) {
+		mob_data* tmd = BL_CAST(BL_MOB,target);
+		bool send_casttargetted_event = true;		
+		if(md){
+		  std::vector<std::shared_ptr<s_mob_skill>>& ms = md->db->skill;
+		  for (int i = 0; i < ms.size(); ++i) {
+		    if (ms[i]->cond1 == MSC_CASTTARGETED) { //if caster also has cast sensor, disable event
+		      send_casttargetted_event = false;
+		      break;
+		    }
+		  }
+		}
+		if(send_casttargetted_event)
+			mobskill_event(tmd, src, tick, -1); // Cast targetted skill event.
 
 		if ((status_has_mode(tstatus,MD_CASTSENSORIDLE) || status_has_mode(tstatus,MD_CASTSENSORCHASE)) && battle_check_target(target, src, BCT_ENEMY) > 0) {
-			switch (md->state.skillstate) {
+			switch (tmd->state.skillstate) {
 				case MSS_RUSH:
 				case MSS_FOLLOW:
 					if (!status_has_mode(tstatus,MD_CASTSENSORCHASE))
 						break;
 
-					md->target_id = src->id;
-					md->state.aggressive = status_has_mode(tstatus,MD_ANGRY)?1:0;
-					md->min_chase = md->db->range3;
+					tmd->target_id = src->id;
+					tmd->state.aggressive = status_has_mode(tstatus,MD_ANGRY)?1:0;
+					tmd->min_chase = tmd->db->range3;
 					break;
 				case MSS_IDLE:
 				case MSS_WALK:
 					if (!status_has_mode(tstatus,MD_CASTSENSORIDLE))
 						break;
 
-					md->target_id = src->id;
-					md->state.aggressive = status_has_mode(tstatus,MD_ANGRY)?1:0;
-					md->min_chase = md->db->range3;
+					tmd->target_id = src->id;
+					tmd->state.aggressive = status_has_mode(tstatus,MD_ANGRY)?1:0;
+					tmd->min_chase = tmd->db->range3;
 					break;
 			}
 		}
@@ -2111,7 +2147,10 @@ int unit_skilluse_id2(struct block_list *src, int target_id, uint16 skill_id, ui
 		}
 	}
 
-
+	if (BL_CAST(BL_MOB,src))
+	  ((mob_data*)src)->skill_being_cast_id = skill_id;
+	else if (sd)
+		sd->skill_being_cast_id = skill_id;
 	if( casttime > 0 ) {
 		ud->skilltimer = add_timer( tick+casttime, skill_castend_id, src->id, 0 );
 
@@ -2173,6 +2212,7 @@ int unit_skilluse_pos2( struct block_list *src, short skill_x, short skill_y, ui
 		return 0;
 
 	sd = BL_CAST(BL_PC, src);
+	mob_data* md = BL_CAST(BL_MOB, src);
 	ud = unit_bl2ud(src);
 
 	if(ud == NULL)
@@ -2278,7 +2318,6 @@ int unit_skilluse_pos2( struct block_list *src, short skill_x, short skill_y, ui
 		}
 		return 0; // Arrow-path check failed.
 
-
 	}
 	unit_stop_attack(src);
 
@@ -2337,7 +2376,10 @@ int unit_skilluse_pos2( struct block_list *src, short skill_x, short skill_y, ui
 
 	// In official this is triggered even if no cast time.
 	clif_skillcasting(src, src->id, 0, skill_x, skill_y, skill_id, skill_lv, skill_get_ele(skill_id, skill_lv), casttime);
-
+	if (md)
+		md->skill_being_cast_id = skill_id;
+	else if (sd)
+		sd->skill_being_cast_id = skill_id;
 	if( casttime > 0 ) {
 		ud->skilltimer = add_timer( tick+casttime, skill_castend_pos, src->id, 0 );
 
@@ -2844,10 +2886,17 @@ static int unit_attack_timer_sub(struct block_list* src, int tid, t_tick tick)
 		if (battle_config.attack_direction_change && (src->type&battle_config.attack_direction_change))
 			unit_setdir(src, map_calc_dir(src, target->x, target->y), false);
 
-		if(ud->walktimer != INVALID_TIMER)
+		if(ud->walktimer != INVALID_TIMER && !(md && (status_get_mode(&md->bl) & (MD_PCBEHAVIOR|MD_SKILLONLY))))
 			unit_stop_walking(src,1);
 
 		if(md) {
+
+			e_mode mode = static_cast<e_mode>(status_get_mode(&md->bl));
+			if (mode & MD_SKILLONLY) {
+				md->state.skillstate = md->state.aggressive ? MSS_ANGRY : MSS_BERSERK; // on met ça car sinon il reste iddle après le skill
+				mobskill_use(md, tick, -1); // si on enlève pas le if ca fait une auto au lieu de skill car pour si le retour vaut 0 c'est que le mob a échoué le skill et ca continue le code qui conduit à l'autoattaque
+				return 1;
+			}
 			//First attack is always a normal attack
 			if(md->state.skillstate == MSS_ANGRY || md->state.skillstate == MSS_BERSERK) {
 				if (mobskill_use(md,tick,-1))
@@ -3006,13 +3055,17 @@ int unit_skillcastcancel(struct block_list *bl, char type)
 				sd->canequip_tick = tick;
 				break;
 		}
+		sd->skill_being_cast_id = 0;		
 	}
 
-	if(bl->type==BL_MOB)
-		((TBL_MOB*)bl)->skill_idx = -1;
+	if(bl->type==BL_MOB){
+		mob_data*md=(TBL_MOB*)bl;
+		md->skill_idx = -1;
+		md->skill_being_cast_id = 0;
+	}
 
 	clif_skillcastcancel(bl);
-
+	
 	return 1;
 }
 

@@ -1264,6 +1264,7 @@ enum sc_type : int16 {
 	SC_AUTOBUFF,
 	SC_AUTOPOT,
 	SC_AUTORESTOCK,
+	SC_EXPANDED_DHRES,
 	SC_MAX, //Automatically updated max, used in for's to check we are within bounds.
 };
 
@@ -3382,8 +3383,9 @@ std::vector<e_race2> status_get_race2(struct block_list *bl);
 struct view_data *status_get_viewdata(struct block_list *bl);
 void status_set_viewdata(struct block_list *bl, int class_);
 void status_change_init(struct block_list *bl);
+t_tick status_get_sc_tick(block_list*, block_list*, enum sc_type type);
+int status_get_sc_total_resist(block_list*, block_list*, enum sc_type type);
 status_change *status_get_sc(struct block_list *bl);
-
 int status_isdead(struct block_list *bl);
 int status_isimmune(struct block_list *bl);
 
@@ -3439,9 +3441,11 @@ static void status_calc_bl(block_list *bl, std::vector<e_scb_flag> flags) {
 
 void status_calc_misc(struct block_list *bl, struct status_data *status, int level);
 void status_calc_regen(struct block_list *bl, struct status_data *status, struct regen_data *regen);
+void status_calc_regen_rate(struct block_list *bl, struct regen_data *regen, struct status_change *sc);
+int status_get_spiritball(block_list* bl);
+int status_get_spiritball_old(block_list* bl);
 void status_calc_regen_rate(struct block_list *bl, struct regen_data *regen, status_change *sc);
 void status_calc_state(struct block_list *bl, status_change *sc, std::bitset<SCS_MAX> flag, bool start);
-
 void status_calc_slave_mode(struct mob_data *md, struct mob_data *mmd);
 
 bool status_check_skilluse(struct block_list *src, struct block_list *target, uint16 skill_id, int flag);

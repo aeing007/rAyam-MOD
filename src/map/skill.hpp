@@ -30,7 +30,7 @@ class status_change;
 
 #define MAX_SKILL_PRODUCE_DB	300 /// Max Produce DB
 #define MAX_PRODUCE_RESOURCE	12 /// Max Produce requirements
-#define MAX_SKILL_LEVEL 13 /// Max Skill Level (for skill_db storage)
+#define MAX_SKILL_LEVEL 100 /// Max Skill Level (for skill_db storage)
 #define MAX_MOBSKILL_LEVEL 100	/// Max monster skill level (on skill usage)
 #define MAX_SKILL_CRIMSON_MARKER 3 /// Max Crimson Marker targets (RL_C_MARKER)
 #define SKILL_NAME_LENGTH 31 /// Max Skill Name length
@@ -179,7 +179,7 @@ enum e_skill_unit_flag : uint8 {
 
 /// Walk intervals at which chase-skills are attempted to be triggered.
 /// If you change this, make sure it's an odd value (for icewall block behavior).
-#define WALK_SKILL_INTERVAL 5
+//#define WALK_SKILL_INTERVAL battle_config.walk_skill_interval //Singe
 
 /// Time that's added to canact delay on castbegin and substracted on castend
 /// This is to prevent hackers from sending a skill packet after cast but before a timer triggers castend
@@ -1912,15 +1912,20 @@ enum e_skill {
 	ECL_SADAGUI,
 	ECL_SEQUOIADUST,
 	ECLAGE_RECALL,
-
+	
 	ALL_PRONTERA_RECALL = 3042,
-		
+	EXPANDED_DUMMY1 = 3046,
+	EXPANDED_DUMMY2,
+	EXPANDED_DUMMY3,
+	EXPANDED_DHRES,
+	EXPANDED_CHANGE_RANGE,	
 	MACRO_START_ID = 3050,
 	MACRO_TARGET = MACRO_START_ID,
 	MACRO_SELF,
 	MACRO_GROUND,
 	MACRO_SUPPORT,
 	MACRO_END_ID = MACRO_SUPPORT,
+
 	GC_DARKCROW = 5001,
 	RA_UNLIMIT,
 	GN_ILLUSIONDOPING,

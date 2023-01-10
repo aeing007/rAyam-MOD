@@ -1701,8 +1701,8 @@ static int pet_randomwalk(struct pet_data *pd,t_tick tick)
 			else
 				c += pd->status.speed;
 		}
-
-		pd->next_walktime = tick+rnd()%1000+MIN_RANDOMWALKTIME+c;
+		t_tick min_random_walk_time_pcbehavior = status_get_mode(&pd->bl) & MD_PCBEHAVIOR ? battle_config.min_random_walk_time_pcbehavior : battle_config.min_random_walk_time;
+		pd->next_walktime = tick+rnd()%1000+min_random_walk_time_pcbehavior+c;
 
 		return 1;
 	}

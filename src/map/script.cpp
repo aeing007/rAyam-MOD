@@ -16337,7 +16337,7 @@ BUILDIN_FUNC(summon)
 		md->deletetimer = add_timer(tick+(timeout>0?timeout:60000),mob_timer_delete,md->bl.id,0);
 		mob_spawn (md); //Now it is ready for spawning.
 		clif_specialeffect(&md->bl,EF_ENTRY2,AREA);
-		sc_start4(NULL,&md->bl, SC_MODECHANGE, 100, 1, 0, MD_AGGRESSIVE, 0, 60000);
+	//	sc_start4(NULL,&md->bl, SC_MODECHANGE, 100, 1, 0, MD_AGGRESSIVE, 0, 60000);
 	}
 	script_pushint(st, md->bl.id);
 
@@ -18350,6 +18350,7 @@ BUILDIN_FUNC(getmonsterinfo)
 		case MOB_MODE:		script_pushint(st,mob->status.mode); break;
 		case MOB_MVPEXP:	script_pushint(st,mob->mexp); break;
 		case MOB_ID:		script_pushint(st,mob->id); break;
+		case MOB_JOB:	script_pushint(st,mob->vd.class_); break;
 		default: script_pushint(st,-1); //wrong Index
 	}
 	return SCRIPT_CMD_SUCCESS;

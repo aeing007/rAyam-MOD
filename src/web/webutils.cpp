@@ -6,7 +6,7 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
-#include <nlohmann/json.hpp>
+#include "../../3rdparty/json/include/nlohmann/json.hpp"
 
 
 /**

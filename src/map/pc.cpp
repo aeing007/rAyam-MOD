@@ -9494,9 +9494,9 @@ int pc_dead(map_session_data *sd,struct block_list *src)
 
 	for(k = 0; k < MAX_DEVOTION; k++) {
 		if (sd->devotion[k]){
-			map_session_data *devsd = map_id2sd(sd->devotion[k]);
-			if (devsd)
-				status_change_end(&devsd->bl, SC_DEVOTION);
+			struct block_list* devbl = map_id2bl(sd->devotion[k]);
+			if (devbl)
+				status_change_end(devbl, SC_DEVOTION);
 			sd->devotion[k] = 0;
 		}
 	}

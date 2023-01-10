@@ -6,7 +6,7 @@
 #define WEB_UTILS_HPP
 
 #include <string>
-#include <nlohmann/json_fwd.hpp>
+#include "../../3rdparty/json/include/nlohmann/json_fwd.hpp"
 
 bool mergeData(nlohmann::json &orig, const nlohmann::json &patch, bool merge_null);
 

@@ -2,14 +2,14 @@
 // For more information, see LICENCE in the main folder
 
 #include "mob.hpp"
-
+#include "mob_inlines.hpp"
+#include <set>
 #include <algorithm>
 #include <map>
 #include <math.h>
 #include <stdlib.h>
 #include <unordered_map>
-#include <vector>
-
+#include <functional>
 #include "../common/cbasetypes.hpp"
 #include "../common/db.hpp"
 #include "../common/ers.hpp"
@@ -19,10 +19,9 @@
 #include "../common/showmsg.hpp"
 #include "../common/socket.hpp"
 #include "../common/strlib.hpp"
-#include "../common/timer.hpp"
 #include "../common/utilities.hpp"
 #include "../common/utils.hpp"
-
+#include <stdexcept>
 #include "achievement.hpp"
 #include "battle.hpp"
 #include "clif.hpp"
@@ -43,9 +42,9 @@
 
 using namespace rathena;
 
-#define ACTIVE_AI_RANGE 2	//Distance added on top of 'AREA_SIZE' at which mobs enter active AI mode.
+#define ACTIVE_AI_RANGE battle_config.active_ai_range	//Distance added on top of 'AREA_SIZE' at which mobs enter active AI mode. //Singe //2
 
-#define IDLE_SKILL_INTERVAL 10	//Active idle skills should be triggered every 1 second (1000/MIN_MOBTHINKTIME)
+//#define IDLE_SKILL_INTERVAL battle_config.idle_skill_interval	//Active idle skills should be triggered every 1 second (1000/MIN_MOBTHINKTIME) //Singe//10
 
 const t_tick MOB_MAX_DELAY = 24 * 3600 * 1000;
 #define RUDE_ATTACKED_COUNT 1	//After how many rude-attacks should the skill be used?
@@ -88,6 +87,232 @@ static struct eri *item_drop_list_ers;
 MobSummonDatabase mob_summon_db;
 MobChatDatabase mob_chat_db;
 MapDropDatabase map_drop_db;
+MobExpandedAiConditionsDatabase mob_expanded_ai_conditions_db;
+//Globals used by ai functions
+const std::unordered_map<std::string, sc_type> um_statusname2id{ // Subset used for mob ai
+   {	"anybad",				SC_NONE 			},
+   {	"stone",				SC_STONE			},
+   {	"petrifying",			SC_STONEWAIT		},
+   {	"freeze",				SC_FREEZE			},
+   {	"stun",					SC_STUN				},
+   {	"sleep",				SC_SLEEP			},
+   {	"poison",				SC_POISON			},
+   {	"curse",				SC_CURSE			},
+   {	"silence",				SC_SILENCE			},
+   {	"confusion",			SC_CONFUSION		},
+   {	"blind",				SC_BLIND			},
+   {	"decreaseagi",			SC_DECREASEAGI		},
+   {	"hiding",				SC_HIDING			},
+   {	"cloaking",				SC_CLOAKING			},
+   {	"edp",					SC_EDP				},
+   {	"ruwach",				SC_RUWACH			},
+   {	"sight",				SC_SIGHT			},
+   {	"blessing",				SC_BLESSING			},
+   {	"increaseagi",			SC_INCREASEAGI		},
+   {	"assumptio",			SC_ASSUMPTIO  		},
+   {	"kyrie",				SC_KYRIE,			},
+   {	"magnificat",			SC_MAGNIFICAT,		},
+   {	"safetywall",			SC_SAFETYWALL 		},
+   {	"pneuma",				SC_PNEUMA			},
+   {	"explosionspirits",		SC_EXPLOSIONSPIRITS	},
+   {	"doublecasting",		SC_DOUBLECAST		},
+   {	"volcano",				SC_VOLCANO			},
+   {	"amplify",				SC_MAGICPOWER		},
+   {	"quagmire",				SC_QUAGMIRE			},
+   {	"spiderweb",			SC_SPIDERWEB		},
+   {	"walloffog",			SC_FOGWALL			},
+   {	"energycoat",			SC_ENERGYCOAT		},
+   {	"aspersio",				SC_ASPERSIO			},
+   {	"suffragium",			SC_SUFFRAGIUM	    },
+   {	"autoguard",			SC_AUTOGUARD		},
+   {	"reflectshield",		SC_REFLECTSHIELD	},
+   {	"endure",				SC_ENDURE			},
+   {	"defender",				SC_DEFENDER			},
+   {    "kaizel",				SC_KAIZEL			},
+   {    "kaahi",				SC_KAAHI			},
+   {    "kaupe",				SC_KAUPE			},
+   {    "kaite",				SC_KAITE			},
+   {    "eswoo",				SC_SWOO				},
+   {    "eska",					SC_SKA				},
+   {    "fury",				    SC_FURY		        },
+   {    "berserk",				SC_BERSERK	        },
+   {    "parry",				SC_PARRYING		    },
+   {    "concentration",		SC_CONCENTRATION    },
+   {    "aurablade",			SC_AURABLADE	    },
+   {    "berserk",				SC_ASPDPOTION3      },
+   {    "eske",					SC_SKE			    },
+   {    "soul",					SC_NEN			    },
+   {    "cicada",				SC_UTSUSEMI         },
+   {	"bragi",				SC_POEMBRAGI		},
+   {	"apple",				SC_APPLEIDUN		},
+   {	"sunset",				SC_ASSNCROS			},
+   {	"slowgrace",				SC_DONTFORGETME			},   
+   {	"dancing",				SC_DANCING			},
+   {	"lexaeterna",			SC_AETERNA			},
+	{	"union",				SC_FUSION			},
+	{	"breakfall",			SC_DODGE			},
+	{	"counterkickstance",	SC_READYCOUNTER		},
+	{	"devotion",				SC_DEVOTION		},
+	{	"providence",			SC_PROVIDENCE		},
+	{	"provoke",				SC_PROVOKE	},
+	{	"hellpower",			SC_HELLPOWER	},
+	{	"gospel",				SC_GOSPEL	},
+	{	"superagi",				SC_SPEEDUP1	},
+	{	"chemicalweapon",				SC_CP_WEAPON	},
+	{	"chemicalshield",				SC_CP_SHIELD	},
+	{	"chemicalarmor",				SC_CP_ARMOR	},
+	{	"chemicalhelm",				SC_CP_HELM	},
+	{	"changeud",				SC_CHANGEUNDEAD	},
+};
+
+const std::unordered_map<std::string, cell_chk> um_cellname2cellid{ // Subset used for mob ai
+	{    "cellwater",			CELL_CHKWATER},
+	{    "basilica",			CELL_CHKBASILICA},
+	{    "landprotector",		CELL_CHKLANDPROTECTOR},
+	{    "maelstrom",			CELL_CHKMAELSTROM},
+	{    "icewall",				CELL_CHKICEWALL},
+};
+const std::unordered_map<std::string, e_mapflag> um_mfname2mfid{ 
+	{    "battleground",			MF_BATTLEGROUND},
+	{    "pvp",			MF_PVP},
+};
+
+const std::unordered_map<std::string, e_aegis_monsterclass> um_mclassname2mclassid{ // Subset used for mob ai
+	{	"normal",		CLASS_NORMAL},
+	{	"boss",			CLASS_BOSS},
+	{	"guardian",		CLASS_GUARDIAN},
+	{	"battle",		CLASS_BATTLEFIELD},
+	{	"event",		CLASS_EVENT},
+};
+
+const std::unordered_map<std::string, e_mode> um_modename2modeid{ // Subset used for mob ai. Maybe not all of them are useful.
+		{"none",MD_NONE},
+		{"canmove",MD_CANMOVE},
+		{"looter",MD_LOOTER},
+		{"aggressive",MD_AGGRESSIVE},
+		{"assist",MD_ASSIST},
+		{"castsensoridle",MD_CASTSENSORIDLE},
+		{"norandomwalk",MD_NORANDOMWALK},
+		{"nocast",MD_NOCAST},
+		{"canattack",MD_CANATTACK},
+		{"skillonly",MD_SKILLONLY},
+		{"castsensorchase",MD_CASTSENSORCHASE},
+		{"changechase",MD_CHANGECHASE},
+		{"angry",MD_ANGRY},
+		{"changetargetmelee",MD_CHANGETARGETMELEE},
+		{"changetargetchase",MD_CHANGETARGETCHASE},
+		{"targetweak",MD_TARGETWEAK},
+		{"randomtarget",MD_RANDOMTARGET},
+		{"ignoremelee",MD_IGNOREMELEE},
+		{"ignoremagic",MD_IGNOREMAGIC},
+		{"ignoreranged",MD_IGNORERANGED},
+		{"mvp",MD_MVP},
+		{"ignoremisc",MD_IGNOREMISC},
+		{"knockbackimmune",MD_KNOCKBACKIMMUNE},
+		{"teleportblock",MD_TELEPORTBLOCK},
+		{"pcbehavior",MD_PCBEHAVIOR},
+		{"fixeditemdrop",MD_FIXEDITEMDROP},
+		{"detector",MD_DETECTOR},
+		{"statusimmune",MD_STATUSIMMUNE},
+		{"skillimmune",MD_SKILLIMMUNE},
+		{"staydead",MD_STAYDEAD},
+};
+
+const std::unordered_map<std::string, bl_type> um_bl_type_name2enumid{
+		{	"player",   BL_PC  },
+		{	"pc",   BL_PC  },
+		{	"mob",	BL_MOB },
+		{	"pet",	BL_PET },
+		{	"hom",	BL_HOM },
+		{	"mer",	BL_MER },
+		{	"item",	BL_ITEM},
+		{	"skill",BL_SKILL},
+		{	"npc",	BL_NPC },
+		{	"chat",	BL_CHAT},
+		{	"elem",	BL_ELEM},
+		{	"all",	BL_ALL },
+};
+
+const std::unordered_map<std::string, e_mob_skill_target> skill_target_name2enumid{
+		{	"target",	MST_TARGET	},
+		{	"randomtarget",	MST_RANDOM	},
+		{	"self",		MST_SELF	},
+		{	"friend",	MST_FRIEND	},
+		{	"friendtarget",	MST_FRIENDTARGET	},
+		{	"master",	MST_MASTER	},
+		{	"around5",	MST_AROUND5	},
+		{	"around6",	MST_AROUND6	},
+		{	"around7",	MST_AROUND7	},
+		{	"around8",	MST_AROUND8	},
+		{	"around1",	MST_AROUND1	},
+		{	"around2",	MST_AROUND2	},
+		{	"around3",	MST_AROUND3	},
+		{	"around4",	MST_AROUND4	},
+		{	"around",	MST_AROUND	},
+};
+enum e_mob_found_mod {
+	MFM_KEEP,
+	MFM_SETTARGET,
+	MFM_LOCKTARGET,
+	MFM_LOCKSKILLONCE
+};
+const std::unordered_map<std::string, e_mob_found_mod> um_name2mfm{
+		{	"settarget",			MFM_SETTARGET		},
+		{	"locktarget",			MFM_LOCKTARGET		},
+		{	"lockskillonce",		MFM_LOCKSKILLONCE	},
+
+};
+
+const std::unordered_map<std::string, e_mob_skill_condition> mob_skill_condition2name{
+	// enum e_mob_skill_condition
+	{ "always",             MSC_ALWAYS             },
+	{ "myhpltmaxrate",      MSC_MYHPLTMAXRATE      },
+	{ "myhpinrate",         MSC_MYHPINRATE         },
+	{ "friendhpltmaxrate",  MSC_FRIENDHPLTMAXRATE  },
+	{ "friendhpinrate",     MSC_FRIENDHPINRATE     },
+	{ "mystatuson",         MSC_MYSTATUSON         },
+	{ "mystatusoff",        MSC_MYSTATUSOFF        },
+	{ "masterstatuson",     MSC_MASTERSTATUSON     },
+	{ "masterstatusoff",    MSC_MASTERSTATUSOFF    },
+	{ "friendstatuson",     MSC_FRIENDSTATUSON     },
+	{ "friendstatusoff",    MSC_FRIENDSTATUSOFF    },
+	{ "enemystatuson",      MSC_ENEMYSTATUSON      },
+	{ "enemystatusoff",     MSC_ENEMYSTATUSOFF     },
+	{ "attackpcgt",         MSC_ATTACKPCGT         },
+	{ "attackpcge",         MSC_ATTACKPCGE         },
+	{ "slavelt",            MSC_SLAVELT            },
+	{ "slavele",            MSC_SLAVELE            },
+	{ "closedattacked",     MSC_CLOSEDATTACKED     },
+	{ "longrangeattacked",  MSC_LONGRANGEATTACKED  },
+	{ "skillused",          MSC_SKILLUSED          },
+	{ "afterskill",         MSC_AFTERSKILL         },
+	{ "casttargeted",       MSC_CASTTARGETED       },
+	{ "rudeattacked",       MSC_RUDEATTACKED       },
+	{ "masterhpltmaxrate",  MSC_MASTERHPLTMAXRATE  },
+	{ "masterattacked",     MSC_MASTERATTACKED     },
+	{ "alchemist",          MSC_ALCHEMIST          },
+	{ "onspawn",            MSC_SPAWN              },
+	{ "mobnearbygt",        MSC_MOBNEARBYGT        },
+	{ "groundattacked",     MSC_GROUNDATTACKED     },
+	{ "damagedgt",          MSC_DAMAGEDGT          },	
+	{ "expanded",		MSC_EXPANDED           }
+};
+
+const std::unordered_map<std::string, MobSkillState> um_mobskillstatename2id{
+		{	"any",		MSS_ANY		}, //All states except Dead
+		{	"idle",		MSS_IDLE	},
+		{	"walk",		MSS_WALK	},
+		{	"loot",		MSS_LOOT	},
+		{	"dead",		MSS_DEAD	},
+		{	"attack",	MSS_BERSERK	}, //Retaliating attack
+		{	"angry",	MSS_ANGRY	}, //Preemptive attack (aggressive mobs)
+		{	"chase",	MSS_RUSH	}, //Chase escaping target
+		{	"follow",	MSS_FOLLOW	}, //Preemptive chase (aggressive mobs)
+		{	"anytarget",MSS_ANYTARGET	}, //Berserk+Angry+Rush+Follow
+};
+
+
+
 
 /*==========================================
  * Local prototype declaration   (only required thing)
@@ -1158,7 +1383,8 @@ int mob_spawn (struct mob_data *md)
 	md->state.aggressive = status_has_mode(&md->status,MD_ANGRY)?1:0;
 	md->state.skillstate = MSS_IDLE;
 	md->ud.state.blockedmove = false;
-	md->next_walktime = tick+rnd()%1000+MIN_RANDOMWALKTIME;
+	t_tick min_random_walk_time_pcbehavior = status_get_mode(&md->bl) & MD_PCBEHAVIOR ? battle_config.min_random_walk_time_pcbehavior : battle_config.min_random_walk_time;
+	md->next_walktime = tick+rnd()%1000+min_random_walk_time_pcbehavior;
 	md->last_linktime = tick;
 	md->dmgtick = tick - 5000;
 	md->last_pcneartime = 0;
@@ -1423,7 +1649,8 @@ static int mob_ai_sub_hard_slavemob(struct mob_data *md,t_tick tick)
 
 	bl=map_id2bl(md->master_id);
 
-	if (!bl || status_isdead(bl)) {
+
+	if (!bl || (status_isdead(bl) && !(status_get_mode(bl) & MD_PCBEHAVIOR))) {
 		status_kill(&md->bl);
 		return 1;
 	}
@@ -1447,7 +1674,7 @@ static int mob_ai_sub_hard_slavemob(struct mob_data *md,t_tick tick)
 		}
 
 		if(md->target_id) //Slave is busy with a target.
-			return 0;
+			return -1;
 
 		// Approach master if within view range, chase back to Master's area also if standing on top of the master.
 		if ((md->master_dist > MOB_SLAVEDISTANCE || md->master_dist == 0) && unit_can_move(&md->bl)) {
@@ -1516,31 +1743,34 @@ int mob_unlocktarget(struct mob_data *md, t_tick tick)
 			break;
 		//Because it is not unset when the mob finishes walking.
 		md->state.skillstate = MSS_IDLE;
-	case MSS_IDLE:
-		if( md->ud.walktimer == INVALID_TIMER && md->idle_event[0] && npc_event_do_id( md->idle_event, md->bl.id ) > 0 ){
+	case MSS_IDLE: {
+		if (md->ud.walktimer == INVALID_TIMER && md->idle_event[0] && npc_event_do_id(md->idle_event, md->bl.id) > 0) {
 			md->idle_event[0] = 0;
 			break;
 		}
 		// Idle skill.
-		if (!(++md->ud.walk_count%IDLE_SKILL_INTERVAL) && mobskill_use(md, tick, -1))
+		int idle_skill_interval = status_get_mode(&md->bl) & MD_PCBEHAVIOR ? battle_config.idle_skill_interval_pcbehavior : battle_config.idle_skill_interval;
+		if (!(++md->ud.walk_count % idle_skill_interval) && mobskill_use(md, tick, -1))
 			break;
 		//Random walk.
 		if (!md->master_id &&
 			DIFF_TICK(md->next_walktime, tick) <= 0 &&
-			!mob_randomwalk(md,tick))
+			!mob_randomwalk(md, tick))
 			//Delay next random walk when this one failed.
-			md->next_walktime = tick+rnd()%1000;
+			md->next_walktime = tick + rnd() % 1000;
 		break;
+	}
 	default:
 		mob_stop_attack(md);
 		mob_stop_walking(md,1); //Stop chasing.
 		if (status_has_mode(&md->status,MD_ANGRY) && !md->state.aggressive)
 			md->state.aggressive = 1; //Restore angry state when switching to idle
 		md->state.skillstate = MSS_IDLE;
+		t_tick min_random_walk_time_pcbehavior = status_get_mode(&md->bl) & MD_PCBEHAVIOR ? battle_config.min_random_walk_time_pcbehavior : battle_config.min_random_walk_time;
 		if(battle_config.mob_ai&0x8) //Walk instantly after dropping target
 			md->next_walktime = tick+rnd()%1000;
 		else
-			md->next_walktime = tick+rnd()%1000+MIN_RANDOMWALKTIME;
+			md->next_walktime = tick+rnd()%1000+min_random_walk_time_pcbehavior;
 		break;
 	}
 	if (md->target_id) {
@@ -1693,8 +1923,8 @@ static bool mob_ai_sub_hard(struct mob_data *md, t_tick tick)
 	// Monsters force-walked by script commands should not be searching for targets.
 	if (md->ud.state.force_walk)
 		return false;
-
-	if (DIFF_TICK(tick, md->last_thinktime) < MIN_MOBTHINKTIME)
+	t_tick min_mob_think_time = status_get_mode(&md->bl) & MD_PCBEHAVIOR ? battle_config.min_mob_think_time_pcbehavior : battle_config.min_mob_think_time;
+	if (DIFF_TICK(tick, md->last_thinktime) < min_mob_think_time)
 		return false;
 
 	md->last_thinktime = tick;
@@ -1715,7 +1945,7 @@ static bool mob_ai_sub_hard(struct mob_data *md, t_tick tick)
 	mode = status_get_mode(&md->bl);
 
 	can_move = (mode&MD_CANMOVE) && unit_can_move(&md->bl);
-
+	int mob_chase_refresh = status_get_mode(&md->bl) & MD_PCBEHAVIOR ? battle_config.mob_chase_refresh_pcbehavior : battle_config.mob_chase_refresh;
 	if (md->target_id)
 	{	//Check validity of current target. [Skotlex]
 		tbl = map_id2bl(md->target_id);
@@ -1729,7 +1959,7 @@ static bool mob_ai_sub_hard(struct mob_data *md, t_tick tick)
 		)) {	//No valid target
 			if (mob_warpchase(md, tbl))
 				return true; //Chasing this target.
-			if (tbl && md->ud.walktimer != INVALID_TIMER && (!can_move || md->ud.walkpath.path_pos <= battle_config.mob_chase_refresh))
+			if (tbl && md->ud.walktimer != INVALID_TIMER && (!can_move || md->ud.walkpath.path_pos <= mob_chase_refresh))
 				return true; //Walk at least "mob_chase_refresh" cells before dropping the target unless target is non-existent
 			mob_unlocktarget(md, tick); //Unlock target
 			tbl = NULL;
@@ -1811,9 +2041,12 @@ static bool mob_ai_sub_hard(struct mob_data *md, t_tick tick)
 
 	// Processing of slave monster
 	if (md->master_id > 0) {
-		if (mob_ai_sub_hard_slavemob(md, tick) == 1)
+		int rr = mob_ai_sub_hard_slavemob(md, tick);
+		if (rr == 1)
 			return true;
-		slave_lost_target = true;
+		else if(rr==0)
+			slave_lost_target = true;
+
 	}
 
 	// Scan area for targets
@@ -1837,13 +2070,21 @@ static bool mob_ai_sub_hard(struct mob_data *md, t_tick tick)
 
 	if (!tbl) { //No targets available.
 		/* bg guardians follow allies when no targets nearby */
-		if( md->bg_id && mode&MD_CANATTACK ) {
-			if( md->ud.walktimer != INVALID_TIMER )
+
+		if (md->bg_id && (mode & MD_CANATTACK || mode & MD_PCBEHAVIOR)) {//Search for allies 1/2
+			if (md->ud.walktimer != INVALID_TIMER)
 				return true;/* we are already moving */
-			map_foreachinallrange (mob_ai_sub_hard_bg_ally, &md->bl, view_range, BL_PC, md, &tbl, mode);
-			if( tbl ) {
-				if( distance_blxy(&md->bl, tbl->x, tbl->y) <= 3 || unit_walktobl(&md->bl, tbl, 1, 1) )
-					return true;/* we're moving or close enough don't unlock the target. */
+			map_foreachinallrange(mob_ai_sub_hard_bg_ally, &md->bl, view_range, BL_PC, md, &tbl, mode);
+			if (tbl) {
+				int idle_skill_interval = status_get_mode(&md->bl) & MD_PCBEHAVIOR ? battle_config.idle_skill_interval_pcbehavior : battle_config.idle_skill_interval;
+				if (distance_blxy(&md->bl, tbl->x, tbl->y) > 2) {
+					unit_walktobl(&md->bl, tbl, 1, 1);/* we're moving or close enough don't unlock the target. */
+					return true;
+				} else if (mode & MD_PCBEHAVIOR){
+					if (++md->ud.walk_count % idle_skill_interval)
+						mobskill_use(md, tick, -1);
+					return true;
+				}
 			}
 		}
 
@@ -1935,7 +2176,9 @@ static bool mob_ai_sub_hard(struct mob_data *md, t_tick tick)
 	//Monsters in berserk state, unable to use normal attacks, will always attempt a skill
 	if(md->ud.walktimer == INVALID_TIMER && (md->state.skillstate == MSS_BERSERK || md->state.skillstate == MSS_ANGRY)) 
 	{
-		if (DIFF_TICK(md->ud.canmove_tick, tick) <= MIN_MOBTHINKTIME && DIFF_TICK(md->ud.canact_tick, tick) < -MIN_MOBTHINKTIME*IDLE_SKILL_INTERVAL) 
+		t_tick min_mob_think_time = status_get_mode(&md->bl) & MD_PCBEHAVIOR ? battle_config.min_mob_think_time_pcbehavior : battle_config.min_mob_think_time;
+		int idle_skill_interval = status_get_mode(&md->bl) & MD_PCBEHAVIOR ? battle_config.idle_skill_interval_pcbehavior : battle_config.idle_skill_interval;
+		if (DIFF_TICK(md->ud.canmove_tick, tick) <= min_mob_think_time && DIFF_TICK(md->ud.canact_tick, tick) < -min_mob_think_time*idle_skill_interval) 
 		{ //Only use skill if able to walk on next tick and not used a skill the last second
 			if (mobskill_use(md, tick, -1))
 				return true;
@@ -1947,7 +2190,7 @@ static bool mob_ai_sub_hard(struct mob_data *md, t_tick tick)
 		return true;
 
 	//Only update target cell / drop target after having moved at least "mob_chase_refresh" cells
-	if(md->ud.walktimer != INVALID_TIMER && (!can_move || md->ud.walkpath.path_pos <= battle_config.mob_chase_refresh)
+	if(md->ud.walktimer != INVALID_TIMER && (!can_move || md->ud.walkpath.path_pos <= mob_chase_refresh)
 		&& mob_is_chasing(md->state.skillstate))
 		return true;
 
@@ -2023,11 +2266,11 @@ static int mob_ai_sub_lazy(struct mob_data *md, va_list args)
 
 	if (md->bl.prev==NULL || md->status.hp == 0)
 		return 1;
-
+	t_tick min_mob_think_time = status_get_mode(&md->bl) & MD_PCBEHAVIOR ? battle_config.min_mob_think_time_pcbehavior : battle_config.min_mob_think_time;
 	if(battle_config.mob_active_time &&
 		md->last_pcneartime &&
  		!status_has_mode(&md->status,MD_STATUSIMMUNE) &&
-		DIFF_TICK(tick,md->last_thinktime) > MIN_MOBTHINKTIME)
+		DIFF_TICK(tick,md->last_thinktime) > min_mob_think_time)
 	{
 		if (DIFF_TICK(tick,md->last_pcneartime) < battle_config.mob_active_time)
 			return (int)mob_ai_sub_hard(md, tick);
@@ -2037,7 +2280,7 @@ static int mob_ai_sub_lazy(struct mob_data *md, va_list args)
 	if(battle_config.boss_active_time &&
 		md->last_pcneartime &&
 		status_has_mode(&md->status,MD_STATUSIMMUNE) &&
-		DIFF_TICK(tick,md->last_thinktime) > MIN_MOBTHINKTIME)
+		DIFF_TICK(tick,md->last_thinktime) > min_mob_think_time)
 	{
 		if (DIFF_TICK(tick,md->last_pcneartime) < battle_config.boss_active_time)
 			return (int)mob_ai_sub_hard(md, tick);
@@ -2046,8 +2289,7 @@ static int mob_ai_sub_lazy(struct mob_data *md, va_list args)
 
 	//Clean the spotted log
 	mob_clean_spotted(md);
-
-	if(DIFF_TICK(tick,md->last_thinktime)< 10*MIN_MOBTHINKTIME)
+	if(DIFF_TICK(tick,md->last_thinktime)< 10*min_mob_think_time)
 		return 0;
 
 	md->last_thinktime=tick;
@@ -2241,6 +2483,13 @@ TIMER_FUNC(mob_timer_delete){
 		}
 		//for Alchemist CANNIBALIZE [Lupus]
 		md->deletetimer = INVALID_TIMER;
+		if (status_get_mode(bl) & MD_STAYDEAD){
+			if (!status_isdead(bl))
+				return 0;
+			clif_specialeffect(bl, EF_NAPALMBEAT, AREA_WOS);
+			clif_clearunit_area(&md->bl, CLR_OUTSIGHT);
+			
+		}
 		unit_free(bl, CLR_TELEPORT);
 	}
 	return 0;
@@ -2444,6 +2693,13 @@ void mob_damage(struct mob_data *md, struct block_list *src, int damage)
 				clif_monster_hp_bar(md, sd->fd);
 		}
 	}
+	if (md->bg_id) {
+		std::shared_ptr<s_battleground_data> bgteam = util::umap_find(bg_team_db, md->bg_id);
+		if (bgteam) {
+			for (const auto& pl_sd : bgteam->members)
+				clif_monster_hp_bar(md, pl_sd.sd->fd);
+		}
+	}
 #endif
 }
 
@@ -2563,6 +2819,17 @@ int mob_dead(struct mob_data *md, struct block_list *src, int type)
 		mobskill_use(md,tick,-1);
 		md->status.hp = 0;
 	}
+
+	
+	for(int k = 0; k < MAX_DEVOTION; k++) {
+		if (md->devotion[k]){
+			struct block_list* devbl = map_id2bl(md->devotion[k]);
+			if (devbl)
+				status_change_end(devbl, SC_DEVOTION, INVALID_TIMER);
+			md->devotion[k] = 0;
+		}
+	}
+
 
 	map_freeblock_lock();
 
@@ -2778,8 +3045,8 @@ int mob_dead(struct mob_data *md, struct block_list *src, int type)
 			party_exp_share(pt[i].p, &md->bl, pt[i].base_exp,pt[i].job_exp,pt[i].zeny);
 
 	} //End EXP giving.
-
-	if( !(type&1) && !map_getmapflag(m, MF_NOMOBLOOT) && !md->state.rebirth && (
+	bool staydead = status_get_mode(&md->bl) & MD_STAYDEAD;
+	if( !(type&1) && !map_getmapflag(m, MF_NOMOBLOOT) && !md->state.rebirth && !staydead&& (
 		!md->special_state.ai || //Non special mob
 		battle_config.alchemist_summon_reward == 2 || //All summoned give drops
 		(md->special_state.ai==AI_SPHERE && battle_config.alchemist_summon_reward == 1) //Marine Sphere Drops items.
@@ -3059,7 +3326,7 @@ int mob_dead(struct mob_data *md, struct block_list *src, int type)
 		mvp_sd = NULL;
 
 	rebirth =  ( md->sc.getSCE(SC_KAIZEL) || md->sc.getSCE(SC_ULTIMATE_S) || (md->sc.getSCE(SC_REBIRTH) && !md->state.rebirth) );
-	if( !rebirth ) { // Only trigger event on final kill
+	if( !rebirth && !staydead) { // Only trigger event on final kill
 		if( src ) {
 			switch( src->type ) { //allowed type
 				case BL_PET:
@@ -3138,7 +3405,7 @@ int mob_dead(struct mob_data *md, struct block_list *src, int type)
 
 	map_freeblock_unlock();
 
-	if( !rebirth ) {
+	if( !rebirth && !staydead) {
 
 		if( pcdb_checkid(md->vd->class_) ) {//Player mobs are not removed automatically by the client.
 			/* first we set them dead, then we delay the outsight effect */
@@ -3164,7 +3431,7 @@ int mob_dead(struct mob_data *md, struct block_list *src, int type)
 	if (battle_config.mvp_tomb_enabled && md->spawn->state.boss && map_getmapflag(md->bl.m, MF_NOTOMB) != 1)
 		mvptomb_create(md, mvp_sd ? mvp_sd->status.name : NULL, time(NULL));
 
-	if( !rebirth )
+	if( !rebirth && !staydead)
 		mob_setdelayspawn(md); //Set respawning.
 	return 3; //Remove from map.
 }
@@ -3179,7 +3446,8 @@ void mob_revive(struct mob_data *md, unsigned int hp)
 	t_tick tick = gettick();
 	md->state.skillstate = MSS_IDLE;
 	md->last_thinktime = tick;
-	md->next_walktime = tick+rnd()%1000+MIN_RANDOMWALKTIME;
+	t_tick min_random_walk_time_pcbehavior = status_get_mode(&md->bl) & MD_PCBEHAVIOR ? battle_config.min_random_walk_time_pcbehavior : battle_config.min_random_walk_time;
+	md->next_walktime = tick+rnd()%1000+min_random_walk_time_pcbehavior;
 	md->last_linktime = tick;
 	md->last_pcneartime = 0;
 	//We reset the damage log and then set the already lost damage as self damage so players don't get exp for it [Playtester]
@@ -3544,7 +3812,9 @@ int mob_summonslave(struct mob_data *md2,int *value,int amount,uint16 skill_id)
 
 		if (md2->state.copy_master_mode)
 			md->status.mode = md2->status.mode;
-
+		if (md2->bg_id) {
+			md->bg_id = md2->bg_id;
+		}
 		clif_skill_nodamage(&md->bl,&md->bl,skill_id,amount,1);
 	}
 
@@ -3595,26 +3865,19 @@ int mob_getfriendhprate_sub(struct block_list *bl,va_list ap)
 	if ((*fr) != NULL) //A friend was already found.
 		return 0;
 
-	if (battle_check_target(&md->bl,bl,BCT_ENEMY)>0)
+	if (battle_check_target(&md->bl,bl,BCT_FRIEND) < 0) // BCT_ENEMY) > 0 can make hostile mobs use heal on friendly revived and still immune characters
 		return 0;
 
 	rate = get_percentage(status_get_hp(bl), status_get_max_hp(bl));
-
 	if (rate >= min_rate && rate <= max_rate)
 		(*fr) = bl;
 	return 1;
 }
 static struct block_list *mob_getfriendhprate(struct mob_data *md,int64 min_rate,int64 max_rate)
 {
-	struct block_list *fr=NULL;
-	int type = BL_MOB;
-
+	struct block_list* fr = NULL;
 	nullpo_retr(NULL, md);
-
-	if (md->special_state.ai) //Summoned creatures. [Skotlex]
-		type = BL_PC;
-
-	map_foreachinallrange(mob_getfriendhprate_sub, &md->bl, 8, type,md,min_rate,max_rate,&fr);
+	map_foreachinallrange(mob_getfriendhprate_sub, &md->bl, 8, BL_PC | BL_MOB | BL_MER, md, min_rate, max_rate, &fr);
 	return fr;
 }
 /*==========================================
@@ -3632,19 +3895,19 @@ struct block_list *mob_getmasterhpltmaxrate(struct mob_data *md,int64 rate)
 	return NULL;
 }
 
-bool mob_getstatus_sub( struct mob_data& md, e_mob_skill_condition condition, sc_type type ){
+bool mob_getstatus_sub( block_list* bl, e_mob_skill_condition condition, sc_type type ){
 	bool found = false;
 
 	if( type == SC_NONE ){
 		for( int i = SC_COMMON_MIN; i <= SC_COMMON_MAX; i++ ){
-			if( md.sc.getSCE( i ) != nullptr ){
+			if( status_get_sc(bl)->getSCE( i ) != nullptr ){
 				// Once an effect was found, break out. [Skotlex]
 				found = true;
 				break;
 			}
 		}
 	}else{
-		found = md.sc.getSCE( type ) != nullptr;
+		found = status_get_sc(bl)->getSCE( type ) != nullptr;
 	}
 
 	switch( condition ){
@@ -3662,38 +3925,117 @@ bool mob_getstatus_sub( struct mob_data& md, e_mob_skill_condition condition, sc
 /*==========================================
  * What a status state suits by nearby MOB is looked for.
  *------------------------------------------*/
-int mob_getfriendstatus_sub( struct block_list *bl, va_list ap ){
-	struct mob_data *md, *mmd;
+int mob_getfriendstatus_sub(struct block_list *bl,va_list ap)
+{
+	map_session_data* sd;
+	block_list **fr;
+	mob_data* md;
 
 	nullpo_ret(bl);
-	nullpo_ret(md=(struct mob_data *)bl);
-	nullpo_ret(mmd=va_arg(ap,struct mob_data *));
-
-	if( mmd->bl.id == bl->id && !(battle_config.mob_ai&0x10) )
+	nullpo_ret(md = va_arg(ap, struct mob_data *));
+	bool flag = 0;
+	int64 cond1, cond2;
+	cond1 = va_arg(ap, int64);
+	cond2 = va_arg(ap, int64);
+	if (md->bl.id == bl->id && !(battle_config.mob_ai & 0x10))
 		return 0;
-
-	if (battle_check_target(&mmd->bl,bl,BCT_ENEMY)>0)
+	if (status_isdead(bl))
 		return 0;
+	if (battle_check_target(&md->bl, bl, BCT_FRIEND) < 0) // &md->bl is the src, bl is the target, *fr will be the selected ally.
+		return 0;
+	if ((sd = BL_CAST(BL_PC, bl)) && sd->state.block_action == PCBLOCK_IMMUNE )
+			return 0;
+	fr = va_arg(ap, struct block_list **);
+	if( mob_getstatus_sub( bl, static_cast<e_mob_skill_condition>( cond1 ), static_cast<sc_type>( cond2 ) ) ){
+		*fr = bl;
+	}
+	return 0;
+}
+struct block_list *mob_getfriendstatus(struct mob_data *md, int64 cond1, int64 cond2)
+{
 
-	int64 cond1 = va_arg( ap, int64 );
-	int64 cond2 = va_arg( ap, int64 );
-	struct mob_data** fr = va_arg( ap, struct mob_data** );
+	struct block_list* fr = NULL;
+	nullpo_ret(md);
 
-	if( mob_getstatus_sub( *md, static_cast<e_mob_skill_condition>( cond1 ), static_cast<sc_type>( cond2 ) ) ){
-		*fr = md;
+	map_foreachinallrange(mob_getfriendstatus_sub, &md->bl, 8, BL_PC | BL_MOB | BL_MER, md, cond1,cond2, &fr); //vararg at md,cond1,cond2,&fr giving it to sub
+	return fr;
+}
+
+int mob_get_under_condition_sub(struct block_list* bl, va_list ap) {
+	nullpo_ret(bl);
+
+	struct block_list** bls;
+	nullpo_ret(bls = va_arg(ap, struct block_list**));
+	int* c;
+	nullpo_ret(c = va_arg(ap, int*));
+	struct mob_data* md;
+	nullpo_ret(md = va_arg(ap, struct mob_data*));
+
+	std::shared_ptr<expanded_ai::ExpandedCondition> expanded_condition = va_arg(ap, std::shared_ptr<expanded_ai::ExpandedCondition>);
+	if (*c >= 24)
+		return 0;
+	if(!expanded_condition->targetsDead() && status_isdead(bl))
+		return 0;
+	if (md->bl.id == bl->id && !(battle_config.mob_ai & 0x10))
+		return 0;
+	using map_t = ::std::map<e_mob_skill_target, block_list*>;
+	std::map<e_mob_skill_target, block_list*> targets = va_arg(ap,map_t);
+	e_mob_skill_target starget = static_cast<enum e_mob_skill_target>(va_arg(ap, int));
+	int* all = va_arg(ap, int*);
+	e_battle_check_target btarget;
+	int ftid = battle_gettarget(bl);
+	switch (starget) {
+		case MST_FRIEND:
+		case MST_FRIENDTARGET:
+			targets[MST_FRIEND] = bl;
+			if(ftid>0)
+				targets[MST_FRIENDTARGET] = map_id2bl(ftid);
+			btarget = BCT_FRIEND;
+			break;
+		default:
+			targets[MST_TARGET] = bl;
+			btarget = BCT_ENEMY;
+			break;
+
+	}
+	map_session_data* sd;
+	if ((sd = BL_CAST(BL_PC, bl)) && sd->state.block_action == PCBLOCK_IMMUNE )
+		return 0;
+	if (btarget == BCT_ENEMY && status_isdead(bl)) // &md->bl is the src, bl is the target
+		return 0;	
+	if (battle_check_target(&md->bl, bl, btarget) < 0) // &md->bl is the src, bl is the target
+		return 0;
+	(*all)++;
+	block_list* keptbl = bl;
+	switch (starget) {
+		
+		case MST_FRIENDTARGET:
+			keptbl = map_id2bl(ftid);
+		case MST_RANDOM:
+		case MST_FRIEND:
+			if ((*expanded_condition)(targets))
+				bls[(*c)++] = keptbl;
+		default:
+			break;
+
 	}
 
 	return 0;
 }
 
-struct mob_data *mob_getfriendstatus(struct mob_data *md,int64 cond1,int64 cond2)
-{
-	struct mob_data* fr = NULL;
-	nullpo_ret(md);
-
-	map_foreachinallrange(mob_getfriendstatus_sub, &md->bl, 8,BL_MOB, md,cond1,cond2,&fr);
-	return fr;
+bool mob_get_all_under_condition(struct mob_data* md, int range, std::shared_ptr<expanded_ai::ExpandedCondition> expanded_condition,
+	std::map<e_mob_skill_target, block_list*> targets, e_mob_skill_target skill_target, block_list** bls, int* c,int min, int max) {
+	int all = 0;
+	map_foreachinallrange(mob_get_under_condition_sub, &md->bl, range, BL_PC | BL_MOB | BL_MER, bls,c, md, expanded_condition, targets, skill_target,&all);
+	if (*c > 24)
+		*c = 24;
+	if (max == 0)
+		return *c == all; // We want all bls to match with conditions
+	return *c >= min && *c <= max;
 }
+
+
+
 
 // Display message from mob_chat_db.yml
 bool mob_chat_display_message(mob_data &md, uint16 msg_id) {
@@ -3722,7 +4064,7 @@ int mobskill_use(struct mob_data *md, t_tick tick, int event, int64 damage)
 	struct block_list *bl;
 	struct mob_data *fmd = NULL;
 	int i,j,n;
-	short skill_target;
+	e_mob_skill_target skill_target;
 
 	nullpo_ret(md);
 
@@ -3736,17 +4078,20 @@ int mobskill_use(struct mob_data *md, t_tick tick, int event, int64 damage)
 
 	//Pick a starting position and loop from that.
 	i = battle_config.mob_ai&0x100?rnd()%ms.size():0;
-	for (n = 0; n < ms.size(); i++, n++) {
-		int64 c2;
-		int flag = 0;
+	for (int n = 0; n < ms.size(); i++, n++) {
+		block_list *fbl = nullptr; //Friend bl, which can either be a BL_PC or BL_MOB depending on the situation. [Skotlex]
+		block_list *mbl= nullptr; // Master bl //
+		block_list* tbl = nullptr; // Mob's current target
+		block_list* bl = nullptr; // Skill final target
+		int flag=0;
+		int c2 =ms[i]->cond2;
 
+		
 		if (i == ms.size())
 			i = 0;
-
+		skill_target= status_has_mode(&md->db->status, MD_RANDOMTARGET) ? MST_RANDOM:ms[i]->target;
 		if (DIFF_TICK(tick, md->skilldelay[i]) < ms[i]->delay)
 			continue;
-
-		c2 = ms[i]->cond2;
 
 		if (ms[i]->state != md->state.skillstate) {
 			if (md->state.skillstate != MSS_DEAD && (ms[i]->state == MSS_ANY ||
@@ -3769,110 +4114,274 @@ int mobskill_use(struct mob_data *md, t_tick tick, int event, int64 damage)
 			flag = (damage > c2);
 		else if(event == -1){
 			//Avoid entering on defined events to avoid "hyper-active skill use" due to the overflow of calls to this function in battle.
+			fbl = mbl = tbl = bl = nullptr;
 			switch (ms[i]->cond1)
 			{
-				case MSC_ALWAYS:
-					flag = 1; break;
-				case MSC_MYHPLTMAXRATE:		// HP< maxhp%
-					flag = get_percentage(md->status.hp, md->status.max_hp);
-					flag = (flag <= c2);
-					break;
-				case MSC_MYHPINRATE:
-					flag = get_percentage(md->status.hp, md->status.max_hp);
-					flag = (flag >= c2 && flag <= ms[i]->val[0]);
-					break;
-				case MSC_MYSTATUSON:		// status[num] on
-				case MSC_MYSTATUSOFF:		// status[num] off
+			case MSC_ALWAYS:
+				flag = 1; break;
+			case MSC_MYHPLTMAXRATE:		// HP< maxhp%
+				flag = get_percentage(md->status.hp, md->status.max_hp);
+				flag = (flag <= c2);
+				break;
+			case MSC_MYHPINRATE:
+				flag = get_percentage(md->status.hp, md->status.max_hp);
+				flag = (flag >= c2 && flag <= ms[i]->val[0]);
+				break;
+			case MSC_MYSTATUSON:		// status[num] on
+			case MSC_MYSTATUSOFF:		// status[num] off
 					if( !md->sc.count ){
 						flag = 0;
-					}else if( mob_getstatus_sub( *md, static_cast<e_mob_skill_condition>( ms[i]->cond1 ), static_cast<sc_type>( ms[i]->cond2 ) ) ){
+					}else if( mob_getstatus_sub( &md->bl, static_cast<e_mob_skill_condition>( ms[i]->cond1 ), static_cast<sc_type>( ms[i]->cond2 ) ) ){
 						flag = 1;
 					}else{
 						flag = 0;
 					}
-					break;
-				case MSC_FRIENDHPLTMAXRATE:	// friend HP < maxhp%
-					flag = ((fbl = mob_getfriendhprate(md, 0, ms[i]->cond2)) != NULL); break;
-				case MSC_FRIENDHPINRATE	:
-					flag = ((fbl = mob_getfriendhprate(md, ms[i]->cond2, ms[i]->val[0])) != NULL); break;
-				case MSC_FRIENDSTATUSON:	// friend status[num] on
-				case MSC_FRIENDSTATUSOFF:	// friend status[num] off
-					flag = ((fmd = mob_getfriendstatus(md, ms[i]->cond1, ms[i]->cond2)) != NULL); break;
-				case MSC_SLAVELT:		// slave < num
-					flag = (mob_countslave(&md->bl) < c2 ); break;
-				case MSC_ATTACKPCGT:	// attack pc > num
-					flag = (unit_counttargeted(&md->bl) > c2); break;
-				case MSC_SLAVELE:		// slave <= num
-					flag = (mob_countslave(&md->bl) <= c2 ); break;
-				case MSC_ATTACKPCGE:	// attack pc >= num
-					flag = (unit_counttargeted(&md->bl) >= c2); break;
-				case MSC_AFTERSKILL:
-					flag = (md->ud.skill_id == c2); break;
-				case MSC_RUDEATTACKED:
-					flag = (md->state.attacked_count >= RUDE_ATTACKED_COUNT);
-					if (flag) md->state.attacked_count = 0;	//Rude attacked count should be reset after the skill condition is met. Thanks to Komurka [Skotlex]
-					break;
-				case MSC_MASTERHPLTMAXRATE:
-					flag = ((fbl = mob_getmasterhpltmaxrate(md, ms[i]->cond2)) != NULL); break;
-				case MSC_MASTERATTACKED:
-					flag = (md->master_id > 0 && (fbl=map_id2bl(md->master_id)) && unit_counttargeted(fbl) > 0); break;
-				case MSC_ALCHEMIST:
-					flag = (md->state.alchemist); break;
-				case MSC_MOBNEARBYGT:
-					flag = (map_foreachinallrange(mob_count_sub, &md->bl, AREA_SIZE, BL_MOB) > c2 ); break;
+					break;			  
+			case MSC_FRIENDHPLTMAXRATE:	// friend HP < maxhp%
+				flag = ((fbl = mob_getfriendhprate(md, 0, c2)) != NULL); break;
+			case MSC_FRIENDHPINRATE:
+				flag = ((fbl = mob_getfriendhprate(md, c2, ms[i]->val[0])) != NULL); break;
+			case MSC_FRIENDSTATUSON:	// friend status[num] on
+			case MSC_FRIENDSTATUSOFF:	// friend status[num] off
+				flag = ((fbl = mob_getfriendstatus(md, ms[i]->cond1, ms[i]->cond2)) != NULL); break;
+				break;
+			case MSC_ENEMYSTATUSON:	// enemy status[num] on
+			case MSC_ENEMYSTATUSOFF:	// enemy status[num] off
+				if (skill_target == MST_RANDOM) //Pick a random enemy within skill range.
+					bl = battle_getenemy(&md->bl, DEFAULT_ENEMY_TYPE(md),
+						skill_get_range2(&md->bl, ms[i]->skill_id, ms[i]->skill_lv, true));
+				else
+					bl = map_id2bl(md->target_id);
+				if (bl) {
+					flag = status_get_sc(bl)->getSCE(ms[i]->cond2) != NULL;
+					flag ^= (ms[i]->cond1 == MSC_ENEMYSTATUSOFF); break;
+				} else
+					flag = 0;
+				break;
+			case MSC_SLAVELT:		// slave < num
+				flag = (mob_countslave(&md->bl) < c2); break;
+			case MSC_ATTACKPCGT:	// attack pc > num
+				flag = (unit_counttargeted(&md->bl) > c2); break;
+			case MSC_SLAVELE:		// slave <= num
+				flag = (mob_countslave(&md->bl) <= c2); break;
+			case MSC_ATTACKPCGE:	// attack pc >= num
+				flag = (unit_counttargeted(&md->bl) >= c2); break;
+			case MSC_AFTERSKILL:
+				flag = (md->ud.skill_id == c2); break;
+			case MSC_RUDEATTACKED:
+				flag = (md->state.attacked_count >= RUDE_ATTACKED_COUNT);
+				if (flag) md->state.attacked_count = 0;	//Rude attacked count should be reset after the skill condition is met. Thanks to Komurka [Skotlex]
+				break;
+			case MSC_MASTERHPLTMAXRATE:
+				flag = ((mbl = mob_getmasterhpltmaxrate(md, c2)) != NULL); break;
+			case MSC_MASTERSTATUSON:	// friend status[num] on
+			case MSC_MASTERSTATUSOFF:	// friend status[num] off
+				if (mbl != nullptr) {
+					if (!status_get_sc(mbl)->count) {
+						flag = 0;
+					} else if (ms[i]->cond2 == -1) {
+						for (int j = SC_COMMON_MIN; j <= SC_COMMON_MAX; j++)
+							if ((flag = (status_get_sc(mbl)->getSCE(j) != NULL)) != 0)
+								break;
+					} else {
+						flag = (status_get_sc(mbl)->getSCE(ms[i]->cond2) != NULL);
+					}
+					flag ^= (ms[i]->cond1 == MSC_MASTERSTATUSOFF);
+				} else
+					continue;
+				break;
+			case MSC_MASTERATTACKED:
+				flag = (md->master_id > 0 && (mbl = map_id2bl(md->master_id)) && unit_counttargeted(mbl) > 0); break;
+			case MSC_ALCHEMIST:
+				flag = (md->state.alchemist);
+				break;
+			case MSC_MOBNEARBYGT:
+					flag = (map_foreachinallrange(mob_count_sub, &md->bl, AREA_SIZE, BL_MOB) > c2 );
+					break;					
+			case MSC_EXPANDED:
+			{
+				std::map<e_mob_skill_target, block_list*> targets;
+				if ((tbl = map_id2bl(md->target_id)) != NULL)
+					targets[MST_TARGET] = tbl;
+				if ((mbl = map_id2bl(md->master_id)) != NULL)
+					targets[MST_MASTER] = mbl;
+				targets[MST_SELF] = &md->bl;					
+				std::shared_ptr<expanded_ai::ExpandedCondition> expanded_condition = mob_expanded_ai_conditions_db.find(ms[i]->expanded_cond);
+				
+				if ((expanded_condition) != nullptr) {	
+					int minmobs = ms[i]->val[2];
+					int maxmobs = ms[i]->val[3];
+					const int default_min = 1;
+					const int default_max = 1;
+					const int mob_limit = 24;
+					int qts = 0;
+					int aggro_mod = ms[i]->val[0];
+					int bonus_range = ms[i]->val[1];
+					int skill_range = skill_get_range2(&md->bl, ms[i]->skill_id, ms[i]->skill_lv, true);
+					struct block_list* bls[mob_limit];
+					memset(bls, 0, sizeof(bls));
+					if (minmobs >= 0 && maxmobs >= 0) {
+						minmobs = minmobs >= default_min ? minmobs : default_min;
+						maxmobs = maxmobs >= default_max ? maxmobs : mob_limit;
+						if (maxmobs < minmobs)
+							maxmobs = minmobs = 1;
+					} else {
+						if(maxmobs < 0) // No mobs should be found
+							minmobs = 0;
+						else if (minmobs < 0) // All surroudings should have the condition
+							maxmobs = 0;
+					}
+					switch (skill_target) {
+						case MST_FRIEND:			
+							if (mob_get_all_under_condition(md, skill_range + bonus_range, expanded_condition, targets, MST_FRIEND, bls, &qts, minmobs, maxmobs))
+							{
+								bl = bls[rnd() % qts];
+								if (aggro_mod != 0 && md->ud.walktimer == INVALID_TIMER) {// Check if unit was already forced to walk.
+									if (unit_can_reach_bl(&md->bl, bl, distance_bl(&md->bl, bl) + 1, 0, NULL, NULL)) {	
+										add_timer(gettick() + 50, unit_delay_walktobl_timer, md->bl.id, bl->id); // Need timer to avoid mismatches
+									}
+								}
+								flag = 1;
+							} else
+								flag = 0;
+							break;
+						case MST_FRIENDTARGET:
+						case MST_RANDOM:
+							if (mob_get_all_under_condition(md, skill_range+bonus_range, expanded_condition, targets, skill_target, bls, &qts, minmobs, maxmobs)) {							
+								switch (aggro_mod) {
+									case MFM_SETTARGET:
+										bl = bls[rnd() % qts];
+										md->target_id = bl->id;
+										break;
+									case MFM_LOCKTARGET: { 
+										int h;
+										ARR_FIND(0, qts, h, bls[h] == tbl);
+										if (h < qts) // we search for current target in the scanned bls, if found keep it
+											bl=tbl;
+										else {
+											bl = bls[rnd() % qts];
+											md->target_id = bl->id;
+										}
+										break;
+									}
+									case MFM_LOCKSKILLONCE: { // won't skill again if current target matches the scan
+										int h;
+										ARR_FIND(0, qts, h, bls[h] == tbl);
+										if (h < qts)
+											continue; 
+										else {
+											bl = bls[rnd() % qts];
+											md->target_id = bl->id;
+										}
+										break;
+									}
+									default:
+										bl = bls[rnd() % qts];
+										break;
+								} 
+								flag = 1;
+							} else
+								flag = 0;
+							break;
+						case MST_MASTER:
+							if (mbl == nullptr)
+								continue;
+							bl = mbl;
+							flag = (*expanded_condition)(targets);
+							break;
+						case MST_SELF:
+							bl = &md->bl;
+							flag = 1;
+							if (expanded_condition->targetsFriend() ||( expanded_condition->targetsEnemy() && (minmobs > default_min || maxmobs < mob_limit || aggro_mod != 0))) {
+								if (expanded_condition->targetsFriend()) {
+									flag &= mob_get_all_under_condition(md, skill_range + bonus_range, expanded_condition, targets, MST_FRIEND, bls, &qts, minmobs, maxmobs);
+									qts = 0;
+								}
+								if (( expanded_condition->targetsEnemy() && (minmobs > default_min || maxmobs < mob_limit || aggro_mod != 0))) {
+									if (mob_get_all_under_condition(md, skill_range + bonus_range, expanded_condition, targets, MST_RANDOM, bls, &qts, minmobs, maxmobs)) {
+										flag &= 1;
+										switch (aggro_mod) {
+											case MFM_KEEP: // don't change target	
+												break;
+											default: // for the reste, change target
+												md->target_id = bls[rnd() % qts]->id;
+												break;
+										}
+									} else
+										flag = 0;
+								}
+							}
+							else
+								flag &= (*expanded_condition)(targets);
+							break;
+						default:
+							bl = tbl;
+							flag = (*expanded_condition)(targets);
+							break; 
+					}			
+					
+				} else {
+					ShowError("mob_skill_db:Invalid expanded condition '%s' for mobid %d skill %d-removing from db\n", ms[i]->expanded_cond, md->mob_id, ms[i]->skill_id);
+					md->db->skill.erase(md->db->skill.begin() + i);
+					flag = 0;
+				}
+				break;
+			}
+			default:
+				break;
+
 			}
 		}
-
+		
 		if (!flag)
 			continue; //Skill requisite failed to be fulfilled.
 
-		//Execute skill
-		skill_target = status_has_mode(&md->db->status,MD_RANDOMTARGET) ? MST_RANDOM : ms[i]->target;
-		if (skill_get_casttype(ms[i]->skill_id) == CAST_GROUND)
-		{	//Ground skill.
+		//Execute skill	
+		switch (skill_target) {
+		case MST_RANDOM://Pick a random enemy within skill range.
+			bl = bl ? bl : battle_getenemy(&md->bl, DEFAULT_ENEMY_TYPE(md),
+				skill_get_range2(&md->bl, ms[i]->skill_id, ms[i]->skill_lv, true));
+			break;
+		case MST_TARGET:
+		case MST_AROUND5:
+		case MST_AROUND6:
+		case MST_AROUND7:
+		case MST_AROUND8:
+			bl = bl ? bl : map_id2bl(md->target_id);
+			break;
+		case MST_MASTER:
+			if (md->master_id)
+				bl = bl ? bl : (mbl ? mbl : map_id2bl(md->master_id));
+			else
+				continue;
+			break;
+		case MST_FRIEND:
+			bl = bl ? bl : fbl;
+			break;
+		default:
+			bl = &md->bl;
+			break;
+		}
+		if (!bl) {
+			if (battle_config.mob_ai & 0x1000)
+				continue;
+			else
+				break;
+		}
+		md->skill_idx = i;
+		if (skill_get_casttype(ms[i]->skill_id) == CAST_GROUND) {
+			//Ground skill.
 			short x, y;
-			switch (skill_target) {
-				case MST_RANDOM: //Pick a random enemy within skill range.
-					bl = battle_getenemy(&md->bl, DEFAULT_ENEMY_TYPE(md),
-						skill_get_range2(&md->bl, ms[i]->skill_id, ms[i]->skill_lv, true));
-					break;
-				case MST_TARGET:
-				case MST_AROUND5:
-				case MST_AROUND6:
-				case MST_AROUND7:
-				case MST_AROUND8:
-					bl = map_id2bl(md->target_id);
-					break;
-				case MST_MASTER:
-					bl = &md->bl;
-					if (md->master_id)
-						bl = map_id2bl(md->master_id);
-					if (bl) //Otherwise, fall through.
-						break;
-				case MST_FRIEND:
-					bl = fbl?fbl:(fmd?&fmd->bl:&md->bl);
-					break;
-				default:
-					bl = &md->bl;
-					break;
-			}
-			if (!bl) {
-				if (battle_config.mob_ai & 0x1000)
-					continue;
-				else
-					break;
-			}
-
 			x = bl->x;
-		  	y = bl->y;
+			y = bl->y;
 			// Look for an area to cast the spell around...
 			if (skill_target >= MST_AROUND5) {
-				j = skill_target >= MST_AROUND1?
-					(skill_target-MST_AROUND1) +1:
-					(skill_target-MST_AROUND5) +1;
+				int j = skill_target >= MST_AROUND1 ?
+					(skill_target - MST_AROUND1) + 1 :
+					(skill_target - MST_AROUND5) + 1;
 				map_search_freecell(&md->bl, md->bl.m, &x, &y, j, j, 3);
 			}
-			md->skill_idx = i;
+
 			map_freeblock_lock();
 			if (!battle_check_range(&md->bl, bl, skill_get_range2(&md->bl, ms[i]->skill_id, ms[i]->skill_lv, true)) ||
 				!unit_skilluse_pos2(&md->bl, x, y, ms[i]->skill_id, ms[i]->skill_lv, ms[i]->casttime, ms[i]->cancel))
@@ -3883,42 +4392,7 @@ int mobskill_use(struct mob_data *md, t_tick tick, int event, int64 damage)
 				else
 					break;
 			}
-		} else {
-			//Targetted skill
-			switch (skill_target) {
-				case MST_RANDOM: //Pick a random enemy within skill range.
-					bl = battle_getenemy(&md->bl, DEFAULT_ENEMY_TYPE(md),
-						skill_get_range2(&md->bl, ms[i]->skill_id, ms[i]->skill_lv, true));
-					break;
-				case MST_TARGET:
-					bl = map_id2bl(md->target_id);
-					break;
-				case MST_MASTER:
-					bl = &md->bl;
-					if (md->master_id)
-						bl = map_id2bl(md->master_id);
-					if (bl) //Otherwise, fall through.
-						break;
-				case MST_FRIEND:
-					if (fbl) {
-						bl = fbl;
-						break;
-					} else if (fmd) {
-						bl = &fmd->bl;
-						break;
-					} // else fall through
-				default:
-					bl = &md->bl;
-					break;
-			}
-			if (!bl) {
-				if (battle_config.mob_ai & 0x1000)
-					continue;
-				else
-					break;
-			}
-
-			md->skill_idx = i;
+		} else { //Targetted skill
 			map_freeblock_lock();
 			if (!battle_check_range(&md->bl, bl, skill_get_range2(&md->bl, ms[i]->skill_id, ms[i]->skill_lv, true)) ||
 				!unit_skilluse_id2(&md->bl, bl->id, ms[i]->skill_id, ms[i]->skill_lv, ms[i]->casttime, ms[i]->cancel))
@@ -3961,7 +4435,7 @@ int mobskill_event(struct mob_data *md, struct block_list *src, t_tick tick, int
 	if (!target_id || battle_config.mob_changetarget_byskill)
 		md->target_id = src->id;
 
-	if (flag == -1)
+	if (flag == -1 && battle_check_target(src,&md->bl,BCT_ENEMY) > 0)
 		res = mobskill_use(md, tick, MSC_CASTTARGETED);
 	else if ((flag&0xffff) == MSC_SKILLUSED)
 		res = mobskill_use(md, tick, flag, damage);
@@ -4947,7 +5421,7 @@ uint64 MobDatabase::parseBodyNode(const ryml::NodeRef& node) {
 				continue;
 			}
 
-			if (constant < MD_NONE || constant > MD_SKILLIMMUNE) {
+			if (constant < MD_NONE || constant > MD_STAYDEAD) {
 				this->invalidWarning(modeNode[modeit.key()], "Invalid monster mode %s, skipping.\n", modeName.c_str());
 				continue;
 			}
@@ -4998,12 +5472,13 @@ void MobDatabase::loadingFinished() {
 				mob->status.mode = static_cast<e_mode>(mob->status.mode | MD_FIXEDITEMDROP);
 				break;
 		}
+		int view_range_rate = mob->status.mode & MD_PCBEHAVIOR ? battle_config.view_range_rate_pcbehavior : battle_config.view_range_rate;
+		if (view_range_rate != 100)
+			mob->range2 = max(1, mob->range2 * view_range_rate / 100);
 
-		if (battle_config.view_range_rate != 100)
-			mob->range2 = max(1, mob->range2 * battle_config.view_range_rate / 100);
-
-		if (battle_config.chase_range_rate != 100)
-			mob->range3 = max(mob->range2, mob->range3 * battle_config.chase_range_rate / 100);
+		int chase_range_rate = mob->status.mode & MD_PCBEHAVIOR ? battle_config.chase_range_rate_pcbehavior : battle_config.chase_range_rate;
+		if (chase_range_rate != 100)
+			mob->range3 = max(mob->range2, mob->range3 * chase_range_rate / 100);
 
 		// If the attack animation is longer than the delay, the client crops the attack animation!
 		// On aegis there is no real visible effect of having a recharge-time less than amotion anyway.
@@ -5154,6 +5629,8 @@ static bool mob_read_sqldb_sub(std::vector<std::string> str) {
 	if (!str[++index].empty())
 		modes["CanAttack"] << (std::stoi(str[index]) ? "true" : "false");
 	if (!str[++index].empty())
+	  	modes["SkillOnly"] << (std::stoi(str[index]) ? "true" : "false");
+	if (!str[++index].empty())
 		modes["CastSensorChase"] << (std::stoi(str[index]) ? "true" : "false");
 	if (!str[++index].empty())
 		modes["ChangeChase"] << (std::stoi(str[index]) ? "true" : "false");
@@ -5181,6 +5658,8 @@ static bool mob_read_sqldb_sub(std::vector<std::string> str) {
 		modes["KnockBackImmune"] << (std::stoi(str[index]) ? "true" : "false");
 	if (!str[++index].empty())
 		modes["TeleportBlock"] << (std::stoi(str[index]) ? "true" : "false");
+	if (!str[++index].empty())
+		modes["PcBehavior"] << (std::stoi(str[index]) ? "true" : "false");
 	if (!str[++index].empty())
 		modes["FixedItemDrop"] << (std::stoi(str[index]) ? "true" : "false");
 	if (!str[++index].empty())
@@ -5742,6 +6221,514 @@ uint64 MobSummonDatabase::parseBodyNode(const ryml::NodeRef& node) {
 
 	return 1;
 }
+void mob_addspiritball(struct mob_data* md, int max)
+{
+	int tid;
+	uint8 i;
+
+	nullpo_retv(md);
+
+	if (max > MAX_SPIRITBALL)
+		max = MAX_SPIRITBALL;
+	if (md->spiritball < 0)
+		md->spiritball = 0;
+
+	if (md->spiritball && md->spiritball >= max)
+	{
+		md->spiritball--;
+	}
+	md->spiritball++;
+
+	clif_spiritball(&md->bl);
+
+}
+
+void mob_delspiritball(struct mob_data* md, int count)
+{
+	uint8 i;
+
+	nullpo_retv(md);
+
+	if (md->spiritball <= 0) {
+		md->spiritball = 0;
+		return;
+	}
+
+	if (count == 0)
+		return;
+	if (count > md->spiritball)
+		count = md->spiritball;
+	md->spiritball -= count;
+	if (count > MAX_SPIRITBALL)
+		count = MAX_SPIRITBALL;
+	clif_spiritball(&md->bl);
+}
+namespace expanded_ai {
+
+using namespace std;
+using namespace logic_gates;
+
+template <class TPredicate>
+bool SingleCondition<TPredicate>::operator()(const std::map<e_mob_skill_target, block_list*>& targets) const {
+	return inverter((*predicate)(targets));
+}
+template<class TPredicate>
+SingleCondition<TPredicate>::SingleCondition(std::string name, inverter_t inverter, std::shared_ptr<TPredicate> predicate) :
+	ExpandedCondition(name), inverter{ inverter }, predicate{ predicate }{
+	shouldScanEnemy = predicate->targetsEnemy();
+	shouldScanFriend = predicate->targetsFriend();
+	shouldScanDead = predicate->targetsDead();
+}
+
+template <class TPredicate>
+void SingleCondition<TPredicate>::scanTargets(std::shared_ptr<ExpandedCondition> ec) {
+	
+		shouldScanFriend = predicate->targetsFriend();
+		shouldScanEnemy = predicate->targetsEnemy();
+		shouldScanDead = predicate->targetsDead();
+}
+void ConditionContainer::scanTargets(std::shared_ptr<ExpandedCondition> ec) {
+	if (ec->targetsEnemy())
+		shouldScanEnemy = true;
+	if (ec->targetsFriend())
+		shouldScanFriend = true;
+	if (ec->targetsDead())
+		shouldScanDead = true;
+}
+
+
+bool ConditionContainer::operator()(const std::map<e_mob_skill_target, block_list*>& targets) const {
+	return (*logicGate)(nodes, targets);
+}
+
+namespace {
+
+bool fillWithStatus(string& status,string& suffix, const string& predicate) {
+	set<string> available_suffix = { "","resist"};
+	for(const auto& it: um_statusname2id) {
+		string status_str=it.first; 
+		if((predicate.find(status_str)) != string::npos) {//ex: search for "stun"
+			suffix= predicate.substr(status_str.length());
+			if (!available_suffix.count(suffix))
+				return false;
+			status=it.first;
+			return true;
+		}
+	}
+	return false;
+}
+bool fillWithElement(string& element, string& suffix, const string& predicate) {
+	set<string> available_suffix = { "","resist","attack","armor"};
+	for (const auto& pair : um_eleid2elename) {
+		char firstLetter = tolower(pair.first[0]);
+		string ele_str = firstLetter + pair.first.substr(1); //ex: neutral,water
+		if ((predicate.find(ele_str)) != string::npos) { // is an element condition
+			suffix = predicate.substr(ele_str.length());
+			if (!available_suffix.count(suffix))
+				return false;
+			element = pair.first;
+			return true;
+		}
+	}
+	return false;
+}
+//http://www.martinbroadhurst.com/how-to-split-a-string-in-c.html
+template <class Container>
+void split(const std::string& str, Container& cont, char delim) {
+	std::size_t current, previous = 0;
+	current = str.find(delim);
+	while (current != std::string::npos) {
+		cont.push_back(str.substr(previous, current - previous));
+		previous = current + 1;
+		current = str.find(delim, previous);
+	}
+	cont.push_back(str.substr(previous, current - previous));
+}
+
+bool splitComposedPredicates(const string& predicate,  unordered_map<string,string>& parsed_fields) {
+	string prefix, suffix;
+
+	if (fillWithElement(prefix, suffix, predicate)) {
+		parsed_fields.insert({ "predicate", "element" + suffix });  // example: parsed_fields.at("predicate") == "elementattack"
+		parsed_fields.insert({ "element", prefix });                // example: parsed_fields.at("element") == "water"
+		return true;
+	}
+	
+	if (fillWithStatus(prefix, suffix, predicate)) {
+		parsed_fields.insert({ "predicate", "status" + suffix });	// example:parsed_fields.at("predicate") == "statusresist"
+		parsed_fields.insert({ "status", prefix });                 // example:parsed_fields.at("status") == "stun"
+		return true;
+	}
+	return false;
+}
+std::pair<string, int> parse_comparator_and_value(const string& s) {
+	int value;
+	std::pair<string, int> cvpair;
+	std::size_t valueEndPos = s.find('%');
+
+	if (s[0] == '>') {
+		if (s[1] == '=') {
+			value = std::stoi(s.substr(2, valueEndPos)); // offset 2
+			cvpair = std::pair<string, int>("greater_equal", value);
+		} else {
+			value = std::stoi(s.substr(1, valueEndPos));
+			cvpair = std::pair<string, int>("greater", value);
+		}
+	} else if (s[0] == '<') {
+		if (s[1] == '=') {
+			value = std::stoi(s.substr(2, valueEndPos));
+			cvpair = std::pair<string, int>("less_equal", value);
+		} else {
+			value = std::stoi(s.substr(1, valueEndPos));
+			cvpair = std::pair<string, int>("less", value);
+		}
+	} else if (s[0] == '=') {
+		value = std::stoi(s.substr(1, valueEndPos));
+		cvpair = std::pair<string, int>("equal_to", value);
+	} else {
+		value = std::stoi(s.substr(0, valueEndPos)); // offset 2
+		cvpair = std::pair<string, int>("equal_to", value);
+	}
+
+	return cvpair;
+
+} 
+
+inverter_t createInverter(unordered_map<string, string>& parsedFields) {
+	if(parsedFields.at("inverter") == "not")
+		return [](bool invertedResult) {return !invertedResult; };
+	else
+		return [](bool keptResult) {return keptResult; };
+
+}
+
+shared_ptr<predicates::condition_predicate> createConditionPredicate(unordered_map<string, string>& parsed_fields) {
+	using comparator_t = std::function<bool(int, int)>;
+
+	const std::unordered_map<std::string, comparator_t> um_str2comparators{
+	{"greater_equal",std::greater_equal<int>()},
+	{"greater"	,std::greater<int>()},
+	{ "less_equal",std::less_equal<int>()},
+	{ "less"	,std::less<int>() },
+	{ "equal_to"	,std::equal_to<int>() },
+	};
+
+	comparator_t comparator = um_str2comparators.at(parsed_fields.at("comparator"));
+	int value = stoi(parsed_fields.at("value"));
+	e_mob_skill_target target = skill_target_name2enumid.at(parsed_fields.at("target"));
+	string& predicate_str = parsed_fields.at("predicate");
+	if (predicate_str == "exists")
+		return  make_shared<predicates::exists>(target);
+	else if (predicate_str == "isaligned")
+		return  make_shared<predicates::isaligned>(target);
+	else if (predicate_str == "isnew")
+		return  make_shared<predicates::isnew>(target);
+	else if (predicate_str == "percenthealth") {
+		return  make_shared<predicates::percent_health<comparator_t>>(target, comparator, value);
+	} else if (predicate_str == "health") {
+		return  make_shared<predicates::health<comparator_t>>(target, comparator, value);
+	} else if (predicate_str == "cell") {
+		return  make_shared<predicates::cell>(target, um_cellname2cellid.at(parsed_fields.at("cell")));
+	} else if (predicate_str == "job") {
+		return  make_shared<predicates::job<comparator_t>>(target, comparator, value);
+	} else if (predicate_str == "range") {
+		return  make_shared<predicates::attack_range<comparator_t>>(target, comparator, value);
+	} else if (predicate_str == "distance_from_self") {
+		return  make_shared<predicates::distance_from_self<comparator_t>>(target, comparator, value);
+	} else if (predicate_str == "distance_from_friend") {
+		return  make_shared<predicates::distance_from_friend<comparator_t>>(target, comparator, value);
+	} else if (predicate_str == "distance_from_master") {
+		return  make_shared<predicates::distance_from_master<comparator_t>>(target, comparator, value);
+	} else if (predicate_str == "status") {  // status
+		return  make_shared<predicates::status>(target, um_statusname2id.at(parsed_fields.at("status")));
+	} else if (predicate_str == "statusresist") {  // status
+		return  make_shared<predicates::status_resist<comparator_t>>(target, comparator, um_statusname2id.at(parsed_fields.at("status")), value);
+	} else if (predicate_str == "reflectphy") {
+		return  make_shared<predicates::physical_reflect<comparator_t>>(target, comparator, value);
+	} else if (predicate_str == "elementarmor" || predicate_str == "element") {
+		return  make_shared<predicates::element_armor<comparator_t>>(target, comparator, um_eleid2elename.at(parsed_fields.at("element")), value);
+	} else if (predicate_str == "elementattack") {
+		return  make_shared<predicates::element_attack>(target, um_eleid2elename.at(parsed_fields.at("element")));
+	} else if (predicate_str == "elementresist") {
+		return  make_shared<predicates::element_resist<comparator_t>>(target, comparator, um_eleid2elename.at(parsed_fields.at("element")), value);
+	} else if (predicate_str == "attack") {
+		return  make_shared<predicates::attack<comparator_t>>(target, comparator, value);
+	} else if (predicate_str == "spiritball") {
+		return  make_shared<predicates::spiritball<comparator_t>>(target, comparator, value);
+	} else if (predicate_str == "leveldiff") {
+		return  make_shared<predicates::leveldiff<comparator_t>>(target, comparator, value);
+	} else if (predicate_str == "devotees") {
+		return  make_shared<predicates::devotees<comparator_t>>(target,comparator, value);
+	} else if (predicate_str == "is_devotee") {
+		return  make_shared<predicates::is_devotee>(target);
+	} else if (predicate_str == "mapflag")
+		return  make_shared<predicates::mapflag_pred>(target,um_mfname2mfid.at(parsed_fields.at("mapflag")));
+	else if (predicate_str == "nodelay")
+		return  make_shared<predicates::no_delay>(target,value);
+	else if (predicate_str == "skillbeingcast")
+		return  make_shared<predicates::skill_being_cast>(target,value);
+	else if (predicate_str == "mode") {
+		e_mode mode = um_modename2modeid.at(parsed_fields.at("mode"));
+		if (mode == MD_KNOCKBACKIMMUNE)
+			return make_shared<predicates::knockback>(target);
+		return  make_shared<predicates::mode>(target, mode);
+	} else if (predicate_str == "type") {
+		bl_type type = um_bl_type_name2enumid.at(parsed_fields.at("type"));
+		return  make_shared<predicates::type>(target, type);
+	} else if (predicate_str == "monsterclass") {
+		e_aegis_monsterclass monsterclass = um_mclassname2mclassid.at(parsed_fields.at("monsterclass"));
+		return  make_shared<predicates::monsterclass>(target, monsterclass);
+	} else if (predicate_str == "can_place_skill") {
+		return  make_shared<predicates::can_place_skill>(target, value);
+	} 
+	throw std::runtime_error("wrong target " + predicate_str);
+}
+shared_ptr<SingleCondition<predicates::condition_predicate>> createSingleCondition(unordered_map<string, string>& parsed_fields) {
+	inverter_t inverter = createInverter(parsed_fields); 
+	shared_ptr<predicates::condition_predicate> predicate = createConditionPredicate(parsed_fields);
+	return make_shared<SingleCondition<predicates::condition_predicate>>(parsed_fields.at("predicate"), inverter, predicate);
+}
+
+shared_ptr<SingleCondition<ExpandedCondition>> findIfExistsInDatabase(unordered_map<string, string>& parsedFields) {
+	std::shared_ptr<ExpandedCondition> storedCondition;
+	shared_ptr<SingleCondition<ExpandedCondition>> wrappedCondition;
+	if (parsedFields.count("stored")) {
+		storedCondition = mob_expanded_ai_conditions_db.find(parsedFields.at("stored"));
+		wrappedCondition = make_shared<SingleCondition<ExpandedCondition>>(storedCondition->name, createInverter(parsedFields), storedCondition);
+	}
+	return wrappedCondition;
+}
+}// namespace
+
+unordered_map<string, string> parseFields(const string& line) {
+
+	unordered_map<string, string> parsed_fields;
+	vector<string> container;
+	split<vector<string>>(line, container, ' ');
+	
+	if (container.size() > 4 || container.size() < 1) {
+		throw std::runtime_error(line);
+	}
+	if (container.size() == 1) {
+		if (mob_expanded_ai_conditions_db.find(container[0]) == nullptr)
+			throw std::runtime_error(container[0]);
+		parsed_fields.insert({ "stored",container[0] });
+		parsed_fields.insert({ "inverter","disabled"});
+		return parsed_fields;
+	} else if (container.size() == 2 && container[0] == "not") {
+		if (mob_expanded_ai_conditions_db.find(container[1]) == nullptr)
+			throw std::runtime_error(container[1]);
+		parsed_fields.insert({ "stored",container[1] });
+		parsed_fields.insert({ "inverter","not"});
+		return parsed_fields;
+	}
+	if (container[0] == "not") {
+		parsed_fields.insert({ "inverter", "not" });
+		container.erase(container.begin());
+	} else if (container.size() >= 4) {
+		throw std::runtime_error(line);
+	} else
+		parsed_fields.insert({ "inverter", "disabled" });
+
+	std::string& target_str = container[0];
+	if (target_str == "enemy")
+		target_str = "target"; // means current target
+	else
+		target_str = container[0];
+
+	std::pair<string, int> pairComparatorValue;
+	string value_str;
+	if (container.size() == 3) {
+		try {
+			pairComparatorValue = parse_comparator_and_value(container[2]);
+		}
+		catch (const std::invalid_argument&) {
+			throw std::runtime_error(line);
+		}
+		parsed_fields.insert({ "value", to_string(pairComparatorValue.second) });
+		parsed_fields.insert({ "comparator", pairComparatorValue.first });
+	} else {
+		parsed_fields.insert({ "value", "0" });
+		parsed_fields.insert({ "comparator","greater" });
+	}
+	if (skill_target_name2enumid.count(target_str))
+		parsed_fields.insert({ "target", target_str });
+	else
+		throw std::runtime_error("wrong target " + target_str + " '" + line + "'");
+
+	const std::set<string> simple_predicates
+	{
+		"exists",
+		"isnew",
+		"percenthealth",
+		"health",
+		"job",
+		"range",
+		"distance_from_self",
+		"distance_from_friend",
+		"distance_from_master",
+		"reflectphy",
+		"attack",
+		"spiritball",
+		"leveldiff",
+		"devotees",
+		"isaligned",
+		"nodelay",
+		"skillbeingcast",
+		"is_devotee",
+		"can_place_skill"
+	};
+	
+	std::string predicate = container[1];
+
+	if (simple_predicates.count(predicate))
+		parsed_fields.insert({ "predicate", predicate }); // example:parsed_fields.at("predicate") == "percenthealth"
+	else if (um_modename2modeid.count(predicate)) { 
+		parsed_fields.insert({ "predicate", "mode"});
+		parsed_fields.insert({ "mode", predicate });
+	} else if (um_mclassname2mclassid.count(predicate)) { 
+		parsed_fields.insert({ "predicate", "monsterclass"});
+		parsed_fields.insert({ "monsterclass", predicate });
+	} else if (um_bl_type_name2enumid.count(predicate)) {
+		parsed_fields.insert({ "predicate", "type"});
+		parsed_fields.insert({ "type", predicate });
+	} else if (um_cellname2cellid.count(predicate)) {
+		parsed_fields.insert({ "predicate", "cell" });
+		parsed_fields.insert({ "cell", predicate });
+	} else if (um_mfname2mfid.count(predicate)) {
+		parsed_fields.insert({ "predicate", "mapflag" });
+		parsed_fields.insert({ "mapflag", predicate });
+	} else if (!splitComposedPredicates(predicate, parsed_fields))
+		throw std::runtime_error("wrong field " + predicate + " '" + line + "'");
+	return parsed_fields;
+}
+	
+shared_ptr<LogicGate> LogicGate::getLogicGate(const string& name) {
+	static const std::unordered_map<string, shared_ptr<LogicGate>> um_logic_gates{
+			{"and"	,std::make_shared<LogicalAND>()},
+			{"or"	,std::make_shared<LogicalOR>()},
+			{"nand"	,std::make_shared<LogicalNAND>()},
+			{"nor"	,std::make_shared<LogicalNOR>()},
+			{"xor"	,std::make_shared<LogicalXOR>()},
+			{"nxor"	,std::make_shared<LogicalNXOR>()},
+	};
+	return um_logic_gates.at(name);
+}
+
+shared_ptr<ExpandedCondition> ExpandedCondition::createExpandedCondition(const ryml::NodeRef& node) {
+
+	if (node.is_map()) {
+		// All maps should be logic gates so a new ConditionContainer is created
+		shared_ptr<ConditionContainer> conditionContainer;
+
+		std::string lGateName;
+		c4::from_chars(node.first_child().key(), &lGateName);// there is only one pair per map
+		try {
+
+			conditionContainer = make_shared<ConditionContainer>(lGateName, LogicGate::getLogicGate(lGateName));
+			const auto& sequenceOfExpandedConditions = node.first_child();
+			conditionContainer->parseAndPushBackExpandedConditions(sequenceOfExpandedConditions);
+			return conditionContainer;
+		}
+		catch (exception e) {
+			throw std::runtime_error(lGateName);
+		};
+	} else {
+		std::string field;
+		c4::from_chars(node.val(), &field);
+		unordered_map<string, string> parsedFields = parseFields(field);
+
+		//First search for an existing container and wrap it inside a SingleCondition
+		shared_ptr<SingleCondition<ExpandedCondition>> storedCondition = findIfExistsInDatabase(parsedFields);
+		if (storedCondition != nullptr) {
+			return storedCondition;
+		}
+		else {
+			// Try to parse the node into a single condition test;
+			shared_ptr<SingleCondition<predicates::condition_predicate>> singleCondition = createSingleCondition(parsedFields);
+			return singleCondition;
+		}
+	}
+}
+
+bool ExpandedCondition::targetsFriend()
+{
+	return shouldScanFriend;
+}
+
+bool ExpandedCondition::targetsEnemy()
+{
+	return shouldScanEnemy;
+}
+bool ExpandedCondition::targetsDead()
+{
+	return shouldScanDead;
+}
+
+void ConditionContainer::parseAndPushBackExpandedConditions(const ryml::NodeRef& node) {
+	
+     for(ryml::NodeRef const& child : node.children()){
+		try {
+			std::shared_ptr<ExpandedCondition> expandedCondition = createExpandedCondition(child);
+			this->nodes.push_back(expandedCondition);
+			this->scanTargets(expandedCondition);
+		}
+		/*catch (const ExpandedConditionParsingError& ecpe) {
+			ShowError("%s for entry %s\n",ecpe.what(), name.c_str());
+		}*/
+		catch (const std::exception e) {
+			ShowError("%s for entry %s\n", e.what(), name.c_str());
+		}
+	}
+}
+
+
+//const std::string ExpandedConditionParsingError::build_what(const std::string& msg) {
+//
+//	std::stringstream output;
+//	output << "mob_expanded_conditions_db error: " << msg;
+//	return output.str();
+//}
+} // namespace expanded_ai
+/**
+*Reads and parses an entry from the mob_expanded_ai_conditions_db.
+ * @param node: YAML node containing the entry.
+ * @return count of successfully parsed entries
+ */
+uint64 MobExpandedAiConditionsDatabase::parseBodyNode(const ryml::NodeRef& node) {
+	using namespace expanded_ai;
+
+	// All expanded conditions are single pair element maps
+	// so we just have to use begin() to get that only pair.
+	const auto entry = node.begin();
+
+
+	//try {
+		//Each element of the sequence is either a string or a single element map<string,"sequence">
+		
+		const auto& sequence_of_conditions = node.first_child();
+		std::string container_name;
+		c4::from_chars(node.first_child().key(), &container_name);// there is only one pair per map
+		ShowMessage("%s", container_name);
+		// Main conditions' testers container with an implicit "and" gate.
+		std::shared_ptr<ConditionContainer> main_container = std::make_shared<ConditionContainer>(container_name, LogicGate::getLogicGate("and"));
+
+		main_container->parseAndPushBackExpandedConditions(sequence_of_conditions);
+		mob_expanded_ai_conditions_db.put(main_container->name, main_container);
+		return 1;
+	//}
+	//catch (ryml::error) {
+	//	ShowError("Format error in mob_expanded_condition_db.yml. Should be ' - myentryname : '\n");
+	//	return 0;
+	//}
+
+
+	
+}
+
+const std::string MobExpandedAiConditionsDatabase::getDefaultLocation() {
+	return std::string(db_path)+"/mob_expanded_ai_conditions_db.yml";
+}
 
 const std::string MobChatDatabase::getDefaultLocation() {
 	return std::string(db_path) + "/mob_chat_db.yml";
@@ -5806,82 +6793,6 @@ uint64 MobChatDatabase::parseBodyNode(const ryml::NodeRef& node) {
  *------------------------------------------*/
 static bool mob_parse_row_mobskilldb(char** str, int columns, int current)
 {
-	static const struct {
-		char str[32];
-		enum MobSkillState id;
-	} state[] = {
-		{	"any",		MSS_ANY		}, //All states except Dead
-		{	"idle",		MSS_IDLE	},
-		{	"walk",		MSS_WALK	},
-		{	"loot",		MSS_LOOT	},
-		{	"dead",		MSS_DEAD	},
-		{	"attack",	MSS_BERSERK	}, //Retaliating attack
-		{	"angry",	MSS_ANGRY	}, //Preemptive attack (aggressive mobs)
-		{	"chase",	MSS_RUSH	}, //Chase escaping target
-		{	"follow",	MSS_FOLLOW	}, //Preemptive chase (aggressive mobs)
-		{	"anytarget",MSS_ANYTARGET	}, //Berserk+Angry+Rush+Follow
-	};
-	static const struct {
-		char str[32];
-		int id;
-	} cond1[] = {
-		// enum e_mob_skill_condition
-		{ "always",            MSC_ALWAYS            },
-		{ "myhpltmaxrate",     MSC_MYHPLTMAXRATE     },
-		{ "myhpinrate",        MSC_MYHPINRATE        },
-		{ "friendhpltmaxrate", MSC_FRIENDHPLTMAXRATE },
-		{ "friendhpinrate",    MSC_FRIENDHPINRATE    },
-		{ "mystatuson",        MSC_MYSTATUSON        },
-		{ "mystatusoff",       MSC_MYSTATUSOFF       },
-		{ "friendstatuson",    MSC_FRIENDSTATUSON    },
-		{ "friendstatusoff",   MSC_FRIENDSTATUSOFF   },
-		{ "attackpcgt",        MSC_ATTACKPCGT        },
-		{ "attackpcge",        MSC_ATTACKPCGE        },
-		{ "slavelt",           MSC_SLAVELT           },
-		{ "slavele",           MSC_SLAVELE           },
-		{ "closedattacked",    MSC_CLOSEDATTACKED    },
-		{ "longrangeattacked", MSC_LONGRANGEATTACKED },
-		{ "skillused",         MSC_SKILLUSED         },
-		{ "afterskill",        MSC_AFTERSKILL        },
-		{ "casttargeted",      MSC_CASTTARGETED      },
-		{ "rudeattacked",      MSC_RUDEATTACKED      },
-		{ "masterhpltmaxrate", MSC_MASTERHPLTMAXRATE },
-		{ "masterattacked",    MSC_MASTERATTACKED    },
-		{ "alchemist",         MSC_ALCHEMIST         },
-		{ "onspawn",           MSC_SPAWN             },
-		{ "mobnearbygt",       MSC_MOBNEARBYGT       },
-		{ "groundattacked",    MSC_GROUNDATTACKED    },
-		{ "damagedgt",         MSC_DAMAGEDGT         },
-	}, cond2[] ={
-		{	"anybad",		-1				},
-		{	"stone",		SC_STONE		},
-		{	"freeze",		SC_FREEZE		},
-		{	"stun",			SC_STUN			},
-		{	"sleep",		SC_SLEEP		},
-		{	"poison",		SC_POISON		},
-		{	"curse",		SC_CURSE		},
-		{	"silence",		SC_SILENCE		},
-		{	"confusion",	SC_CONFUSION	},
-		{	"blind",		SC_BLIND		},
-		{	"hiding",		SC_HIDING		},
-		{	"sight",		SC_SIGHT		},
-	}, target[] = {
-		// enum e_mob_skill_target
-		{	"target",	MST_TARGET	},
-		{	"randomtarget",	MST_RANDOM	},
-		{	"self",		MST_SELF	},
-		{	"friend",	MST_FRIEND	},
-		{	"master",	MST_MASTER	},
-		{	"around5",	MST_AROUND5	},
-		{	"around6",	MST_AROUND6	},
-		{	"around7",	MST_AROUND7	},
-		{	"around8",	MST_AROUND8	},
-		{	"around1",	MST_AROUND1	},
-		{	"around2",	MST_AROUND2	},
-		{	"around3",	MST_AROUND3	},
-		{	"around4",	MST_AROUND4	},
-		{	"around",	MST_AROUND	},
-	};
 	static int last_mob_id = 0;  // ensures that only one error message per mob id is printed
 	int mob_id;
 	int j, tmp;
@@ -5924,9 +6835,9 @@ static bool mob_parse_row_mobskilldb(char** str, int columns, int current)
 	std::shared_ptr<s_mob_skill> ms = std::make_shared<s_mob_skill>();
 
 	//State
-	ARR_FIND( 0, ARRAYLENGTH(state), j, strcmp(str[2],state[j].str) == 0 );
-	if( j < ARRAYLENGTH(state) )
-		ms->state = state[j].id;
+	const std::string& str_state = str[2];
+	if (um_mobskillstatename2id.count(str_state))
+		ms->state=um_mobskillstatename2id.at(str_state);
 	else {
 		ShowError("mob_parse_row_mobskilldb: Unrecognized state '%s' in line %d\n", str[2], current);
 		return false;
@@ -5969,11 +6880,11 @@ static bool mob_parse_row_mobskilldb(char** str, int columns, int current)
 		ms->cancel=1;
 
 	//Target
-	ARR_FIND( 0, ARRAYLENGTH(target), j, strcmp(str[9],target[j].str) == 0 );
-	if( j < ARRAYLENGTH(target) )
-		ms->target = target[j].id;
+	const std::string& target_str=str[9];
+	if (skill_target_name2enumid.count(target_str))
+		ms->target=skill_target_name2enumid.at(target_str);
 	else {
-		ShowWarning("mob_parse_row_mobskilldb: Unrecognized target %s for %d\n", str[9], mob_id);
+		ShowWarning("mob_parse_row_mobskilldb: Unrecognized target %s for %d\n", target_str, mob_id);
 		ms->target = MST_TARGET;
 	}
 
@@ -5995,24 +6906,43 @@ static bool mob_parse_row_mobskilldb(char** str, int columns, int current)
 	}
 
 	//Cond1
-	ARR_FIND( 0, ARRAYLENGTH(cond1), j, strcmp(str[10],cond1[j].str) == 0 );
-	if( j < ARRAYLENGTH(cond1) )
-		ms->cond1 = cond1[j].id;
-	else {
-		ShowWarning("mob_parse_row_mobskilldb: Unrecognized condition 1 %s for %d\n", str[10], mob_id);
-		ms->cond1 = -1;
+	const std::string& str_cond = str[10];
+	try {
+		ms->cond1 = mob_skill_condition2name.at(str_cond);
+	}
+	catch (std::out_of_range oor) {
+		ShowWarning("mob_parse_row_mobskilldb: Unrecognized condition 1 %s for %d\n", str_cond, mob_id);
+		return false;
 	}
 
 	//Cond2
-	// numeric value
-	ms->cond2 = atoi(str[11]);
-	// or special constant
-	ARR_FIND( 0, ARRAYLENGTH(cond2), j, strcmp(str[11],cond2[j].str) == 0 );
-	if( j < ARRAYLENGTH(cond2) )
-		ms->cond2 = cond2[j].id;
+	const std::string& str_cond2 = str[11];
+	//search special constant ;
 
-	ms->val[0] = (int)strtol(str[12],NULL,0);
-	ms->val[1] = (int)strtol(str[13],NULL,0);
+	if(str_cond2 == "")
+		ms->cond2=0;
+	else if (um_statusname2id.count(str_cond2)) {
+		ms->cond2=um_statusname2id.at(str_cond2);
+	} else if (mob_expanded_ai_conditions_db.find(str_cond2) != nullptr)
+		ms->expanded_cond=str_cond2;
+	else{
+		try{
+			ms->cond2=stoi(str_cond2);
+		} catch(std::invalid_argument ia){
+			ShowWarning("mob_parse_row_mobskilldb: Unrecognized condition2%s for %d\n", str_cond2, mob_id);
+			return false;
+		}
+	}
+	ms->expanded_cond=str_cond2;
+
+	const std::string& str_val0 = str[12];
+	if (str_val0 == "")
+		ms->val[0] = 0;
+	else if (um_name2mfm.count(str_val0)) {
+		ms->val[0] = um_name2mfm.at(str_val0);
+	} else
+		ms->val[0] = (int)strtol(str[12], NULL, 0);
+	ms->val[1] = (int)strtol(str[13], NULL, 0);
 	ms->val[2] = (int)strtol(str[14],NULL,0);
 	ms->val[3] = (int)strtol(str[15],NULL,0);
 	ms->val[4] = (int)strtol(str[16],NULL,0);
@@ -6621,7 +7551,7 @@ static void mob_load(void)
 		mob_db.load();
 
 	mob_chat_db.load();	// load before mob_skill_db
-
+	mob_expanded_ai_conditions_db.load(); // load before mob_skill_db
 	for(int i = 0; i < ARRAYLENGTH(dbsubpath); i++){	
 		int n1 = strlen(db_path)+strlen(dbsubpath[i])+1;
 		int n2 = strlen(db_path)+strlen(DBPATH)+strlen(dbsubpath[i])+1;
@@ -6713,7 +7643,7 @@ void mob_reload_itemmob_data(void) {
  */
 static int mob_reload_sub( struct mob_data *md, va_list args ){
 	// Slaves have to be killed
-	if( md->master_id != 0 ){
+	if( md->master_id != 0 && !(status_get_mode(&md->bl)&MD_PCBEHAVIOR)){
 		unit_remove_map( &md->bl, CLR_OUTSIGHT );
 		return 0;
 	}
@@ -6814,6 +7744,7 @@ void do_final_mob(bool is_reload){
 	mob_db.clear();
 	mob_chat_db.clear();
 	mob_skill_db.clear();
+	mob_expanded_ai_conditions_db.clear();
 	mob_item_drop_ratio.clear();
 	mob_summon_db.clear();
 	map_drop_db.clear();

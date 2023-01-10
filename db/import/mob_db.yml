@@ -1,0 +1,1353 @@
+# This file is a part of rAthena.
+#   Copyright(C) 2021 rAthena Development Team
+#   https://rathena.org - https://github.com/rathena
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+###########################################################################
+# Monster Database
+###########################################################################
+#
+# Monster Settings
+#
+###########################################################################
+# - Id                      Monster ID.
+#   AegisName               Server name to reference the monster in scripts and lookups, should use no spaces.
+#   Name                    Name in English.
+#   JapaneseName            Name in Japanese. (Default: 'Name' value)
+#   Level                   Level. (Default: 1)
+#   Hp                      Total HP. (Default: 1)
+#   Sp                      Total SP. (Default: 1)
+#   BaseExp                 Base experience gained. (Default: 0)
+#   JobExp                  Job experience gained. (Default: 0)
+#   MvpExp                  MVP experience gained. (Default: 0)
+#   Attack                  Minimum attack in pre-renewal and base attack in renewal. (Default: 0)
+#   Attack2                 Maximum attack in pre-renewal and base magic attack in renewal. (Default: 0)
+#   Defense                 Physical defense of the monster, reduces melee and ranged physical attack/skill damage. (Default: 0)
+#   MagicDefense            Magic defense of the monster, reduces magical skill damage. (Default: 0)
+#   Resistance              Physical resistance of the monster, reduces melee and ranged physical attack/skill damage. (Default: 0)
+#   MagicResistance         Magic resistance of the monster, reduces magical skill damage. (Default: 0)
+#   Str                     Strength which affects attack. (Default: 1)
+#   Agi                     Agility which affects flee. (Default: 1)
+#   Vit                     Vitality which affects defense. (Default: 1)
+#   Int                     Intelligence which affects magic attack. (Default: 1)
+#   Dex                     Dexterity which affects hit rate. (Default: 1)
+#   Luk                     Luck which affects perfect dodge/lucky flee/perfect flee/lucky dodge rate. (Default: 1)
+#   AttackRange             Attack range. (Default: 0)
+#   SkillRange              Skill cast range. (Default: 0)
+#   ChaseRange              Chase range. (Default: 0)
+#   Size                    Size. (Default: Small)
+#   Race                    Race. (Default: Formless)
+#   RaceGroups:             List of secondary groups the monster may be part of. (Optional)
+#     <group>: <value>      Group to toggle.
+#   Element                 Element. (Default: Neutral)
+#   ElementLevel            Level of element. (Default: 1)
+#   WalkSpeed               Walk speed. (Default: DEFAULT_WALK_SPEED)
+#   AttackDelay             Attack speed. (Default: 0)
+#   AttackMotion            Attack animation speed. (Default: 0)
+#   DamageMotion            Damage animation speed. (Default: 0)
+#   DamageTaken             Rate at which the monster will receive incoming damage. (Default: 100)
+#   Ai                      Aegis monster type AI behavior. (Default: 06)
+#   Class                   Aegis monster class. (Default: Normal)
+#   Modes:                  List of unique behavior not defined by AI, Class, or Attribute. (Optional)
+#     <mode>: <value>       Mode to toggle.
+#   MvpDrops:               List of possible MVP prize items. Max of MAX_MVP_DROP. (Optional)
+#     - Item                Item name.
+#       Rate                Drop rate of item. (Default: 1)
+#       RandomOptionGroup   Random Option Group applied to item on drop. (Default: None)
+#       Index               Index used for overwriting item. (Optional)
+#   Drops:                  List of possible normal item drops. Max of MAX_MOB_DROP. (Optional)
+#     - Item                Item name.
+#       Rate                Drop rate of item. (Default: 1)
+#       StealProtected      If the item is shielded from TF_STEAL. (Default: false)
+#       RandomOptionGroup   Random Option Group applied to item on drop. (Default: None)
+#       Index               Index used for overwriting item. (Optional)
+###########################################################################
+
+Header:
+  Type: MOB_DB
+  Version: 3
+
+Body:
+ 
+# 01: 0x0081 (passive)
+# 02: 0x0083 (passive, looter)
+# 03: 0x1089 (passive, assist and change-target melee)
+# 04: 0x3885 (angry, change-target melee/chase)
+# 05: 0x2085 (aggressive, change-target chase)
+# 06: 0x0000 (passive, immobile, can't attack) [plants]
+# 07: 0x108B (passive, looter, assist, change-target melee)
+# 08: 0x7085 (aggressive, change-target melee/chase, target weak enemies)
+# 09: 0x3095 (aggressive, change-target melee/chase, cast sensor idle) [Guardian]
+# 10: 0x0084 (aggressive, immobile)
+# 11: 0x0084 (aggressive, immobile) [Guardian]
+# 12: 0x2085 (aggressive, change-target chase) [Guardian]
+# 13: 0x308D (aggressive, change-target melee/chase, assist)
+# 17: 0x0091 (passive, cast sensor idle)
+# 19: 0x3095 (aggressive, change-target melee/chase, cast sensor idle)
+# 20: 0x3295 (aggressive, change-target melee/chase, cast sensor idle/chase)
+# 21: 0x3695 (aggressive, change-target melee/chase, cast sensor idle/chase, chase-change target)
+# 24: 0x00A1 (passive, does not walk randomly) [Slave]
+# 25: 0x0001 (passive, can't attack) [Pet]
+# 26: 0xB695 (aggressive, change-target melee/chase, cast sensor idle/chase, chase-change target, random target)
+# 27: 0x8084 (aggressive, immobile, random target)
+
+# MD_NONE					= 0x0000000,
+# MD_CANMOVE				= 0x0000001,
+# MD_LOOTER				= 0x0000002,
+# MD_AGGRESSIVE				= 0x0000004,
+# MD_ASSIST				= 0x0000008,
+# MD_CASTSENSORIDLE			= 0x0000010,
+# MD_NORANDOMWALK			= 0x0000020,
+# MD_NOCAST				= 0x0000040,
+# MD_CANATTACK				= 0x0000080,
+# MD_SKILLONLY				= 0x0000100,
+# MD_CASTSENSORCHASE			= 0x0000200,
+# MD_CHANGECHASE			= 0x0000400,
+# MD_ANGRY				= 0x0000800,
+# MD_CHANGETARGETMELEE			= 0x0001000,
+# MD_CHANGETARGETCHASE			= 0x0002000,
+# MD_TARGETWEAK				= 0x0004000,
+# MD_RANDOMTARGET			= 0x0008000,
+# MD_IGNOREMELEE			= 0x0010000,
+# MD_IGNOREMAGIC			= 0x0020000,
+# MD_IGNORERANGED			= 0x0040000,
+# MD_MVP				= 0x0080000,
+# MD_IGNOREMISC				= 0x0100000,
+# MD_KNOCKBACKIMMUNE			= 0x0200000,
+# MD_TELEPORTBLOCK			= 0x0400000,
+# MD_PCBEHAVIOR	                        = 0x0800000,
+# MD_FIXEDITEMDROP		        = 0x1000000,
+# MD_DETECTOR				= 0x2000000,
+# MD_STATUSIMMUNE			= 0x4000000,
+# MD_SKILLIMMUNE			= 0x8000000,
+# MD_STAYDEAD				= 0x10000000,
+
+ - Id: 31000
+   AegisName: SENTINEL_OF_TIME
+   Name: Sentinel of Time
+   Level: 63
+   Hp: 18600
+   BaseExp: 4378
+   JobExp: 2850
+   Attack: 880
+   Attack2: 1180
+   Defense: 35
+   MagicDefense: 30
+   Agi: 75
+   Vit: 20
+   Int: 64
+   Dex: 75
+   Luk: 60
+   AttackRange: 3
+   SkillRange: 10
+   ChaseRange: 12
+   Size: Large
+   Race: Formless
+   Element: Neutral
+   ElementLevel: 4
+   WalkSpeed: 200
+   AttackDelay: 1072
+   AttackMotion: 672
+   DamageMotion: 384
+   Ai: 17
+   
+ - Id: 31001
+   AegisName: DOMINUS_
+   Name: Dominus_
+   Level: 88
+   Hp: 9999
+   Sp: 0
+   BaseExp: 20000
+   JobExp: 22
+   Attack: 500
+   Attack2: 500
+   Defense: 50
+   MagicDefense: 40
+   Str: 120
+   Agi: 130
+   Vit: 80
+   Int: 155
+   Dex: 149
+   Luk: 50
+   AttackRange: 2
+   SkillRange: 10
+   ChaseRange: 10
+   Size: Medium
+   Race: Formless
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 300
+   AttackMotion: 300
+   DamageMotion: 200
+   Ai: 21
+
+ - Id: 31002
+   AegisName: JUNIN
+   Name: Junin
+   Level: 90
+   Hp: 12700
+   BaseExp: 4970
+   JobExp: 3010
+   Attack: 460
+   Attack2: 1410
+   Defense: 34
+   MagicDefense: 21
+   Str: 85
+   Agi: 85
+   Vit: 25
+   Int: 120
+   Dex: 100
+   Luk: 100
+   AttackRange: 2
+   SkillRange: 30
+   ChaseRange: 30
+   Size: Medium
+   Race: Demihuman
+   RaceGroups:
+     Ninja: true
+   Element: Dark
+   ElementLevel: 3
+   WalkSpeed: 120
+   AttackDelay: 300
+   AttackMotion: 300
+   DamageMotion: 100
+   Ai: 21
+   Modes:
+    SkillOnly: true
+     
+        
+ - Id: 30000
+   AegisName: KRAKEN
+   Name: Kraken
+   Level: 99
+   Hp: 14923
+   Sp: 2500
+   BaseExp: 200
+   JobExp: 22
+   Attack: 800
+   Attack2: 800
+   Defense: 40
+   MagicDefense: 40
+   Str: 130
+   Agi: 50
+   Vit: 50
+   Int: 40
+   Dex: 149
+   Luk: 1
+   FollowRange: 5
+   AttackRange: 2
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 100
+   AttackDelay: 200
+   AttackMotion: 50
+   DamageMotion: 50
+   Ai: 01
+   Modes:
+     
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+     Aggressive: true
+#     NoRandomWalk: true
+ 
+ - Id: 30003
+   AegisName: HORIZONTAL
+   Name: Horizontal
+   Level: 99
+   Hp: 11623
+   BaseExp: 7610
+   JobExp: 2826
+   Attack: 1100
+   Attack2: 1200
+   Defense: 27
+   MagicDefense: 26
+   Str: 1
+   Agi: 150
+   Vit: 1
+   Int: 20
+   Dex: 250
+   Luk: 87
+   FollowRange: 4
+   AttackRange: 18
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 200
+   AttackMotion: 200
+   DamageMotion: 100
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+
+ - Id: 30001
+   AegisName: FULLMETAL
+   Name: Fullmetal
+   JapaneseName: Fullmetal
+   Level: 99
+   Hp: 17547
+   BaseExp: 100000
+   JobExp: 117800
+   Attack: 10
+   Attack2: 10
+   Defense: 40
+   MagicDefense: 70
+   Str: 30
+   Agi: 9
+   Vit: 50
+   Int: 250
+   Dex: 88
+   Luk: 100
+   FollowRange: 2
+   AttackRange: 5
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 300
+   AttackMotion: 300
+   DamageMotion: 288
+   Ai: 21
+   Modes:
+     
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+       # - Item: Leather_Jacket_
+       #   Rate: 10000
+       # - Item: Leather_Jacket_
+       #   Rate: 10000
+       # - Item: Leather_Jacket_
+       #   Rate: 10000
+       # - Item: Leather_Jacket
+       #   Rate: 10000
+       # - Item: Leather_Jacket
+       #   Rate: 10000
+       # - Item: Leather_Jacket
+       #   Rate: 10000
+
+ - Id: 30002
+   AegisName: LEVANTINE
+   Name: Levantine Aldehyde
+   JapaneseName: Levantine Aldehyde
+   Level: 99
+   Hp: 12478
+   BaseExp: 100000
+   JobExp: 117800
+   Attack: 100
+   Attack2: 100
+   Defense: 30
+   MagicDefense: 40
+   Agi: 9
+   Vit: 1
+   Int: 170
+   Dex: 149
+   Luk: 1
+   FollowRange: 2
+   AttackRange: 8
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Fire
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 200
+   AttackMotion: 200
+   DamageMotion: 100
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+
+ - Id: 30004
+   AegisName: BRANDON
+   Name: Brandon Heat
+   Level: 99
+   Hp: 9437
+   Sp: 2500
+   BaseExp: 200
+   JobExp: 22
+   Attack: 2000
+   Attack2: 2050
+   Defense: 12
+   MagicDefense: 10
+   Str: 130
+   Agi: 50
+   Vit: 50
+   Int: 40
+   Dex: 250
+   Luk: 20
+   FollowRange: 4
+   AttackRange: 15
+   SkillRange: 50
+   ChaseRange: 59
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 120
+   AttackDelay: 100
+   AttackMotion: 100
+   DamageMotion: 100
+   Ai: 21
+   Modes:
+          
+     PcBehavior: true
+     StayDead: true
+     SkillOnly: true
+
+ - Id: 30005
+   AegisName: KOUDEKOUTO
+   Name: KouDeKouto
+   Level: 99
+   Hp: 13405
+   Sp: 2500
+   BaseExp: 200
+   JobExp: 22
+   Attack: 2000
+   Attack2: 2000
+   Defense: 12
+   MagicDefense: 10
+   Str: 130
+   Agi: 200
+   Vit: 50
+   Int: 40
+   Dex: 180
+   Luk: 200
+   FollowRange: 5
+   AttackRange: 1
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 200
+   AttackMotion: 200
+   DamageMotion: 30
+   Ai: 21
+   Modes:
+          
+     PcBehavior: true
+     StayDead: true
+
+ - Id: 30006
+   AegisName: SHADOW
+   Name: Shadow
+   Level: 99
+   Hp: 31478
+   Sp: 2500
+   BaseExp: 200
+   JobExp: 22
+   Attack: 100
+   Attack2: 101
+   Defense: 30
+   MagicDefense: 30
+   Str: 10
+   Agi: 10
+   Vit: 91
+   Int: 120
+   Dex: 180
+   Luk: 1
+   FollowRange: 5
+   AttackRange: 7
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 50
+   AttackMotion: 50
+   DamageMotion: 200
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+
+ - Id: 30007
+   AegisName: ATAWN
+   Name: Atawn
+   Level: 99
+   Hp: 21400
+   Sp: 2500
+   BaseExp: 200
+   JobExp: 22
+   Attack: 400
+   Attack2: 400
+   Defense: 0
+   MagicDefense: 0
+   Str: 100
+   Agi: 10
+   Vit: 110
+   Int: 10
+   Dex: 149
+   Luk: 100
+   FollowRange: 3
+   AttackRange: 5
+   SkillRange: 30
+   ChaseRange: 30
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 50
+   AttackMotion: 50
+   DamageMotion: 100
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+#     NoRandomWalk: true
+
+ - Id: 30008
+   AegisName: CREPUSCULE
+   Name: Crepuscule Dupont
+   Level: 99
+   Hp: 18763
+   Sp: 2500
+   BaseExp: 200
+   JobExp: 22
+   Attack: 800
+   Attack2: 800
+   Defense: 40
+   MagicDefense: 40
+   Str: 130
+   Agi: 50
+   Vit: 80
+   Int: 80
+   Dex: 129
+   Luk: 1
+   AttackRange: 2
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 125
+   AttackDelay: 400
+   AttackMotion: 100
+   DamageMotion: 50
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+     
+   
+ - Id: 30009
+   AegisName: JEEL
+   Name: Jeel
+   Level: 99
+   Hp: 33333
+   Sp: 2500
+   BaseExp: 200
+   JobExp: 22
+   Attack: 500
+   Attack2: 500
+   Defense: 60
+   MagicDefense: 60
+   Str: 130
+   Agi: 50
+   Vit: 100
+   Int: 80
+   Dex: 129
+   Luk: 1
+   AttackRange: 3
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 80
+   AttackDelay: 500
+   AttackMotion: 200
+   DamageMotion: 50
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+   
+ - Id: 2408
+   AegisName: DUMMY_10
+   Name: Dummy 10
+   Level: 10
+   Hp: 99999999
+   Size: Medium
+   Race: Formless
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 200
+   DamageMotion: 1000
+   Class: Guardian
+   Modes:
+     NoRandomWalk: true
+     TeleportBlock: true
+     KnockBackImmune: true
+     Mvp: true
+     
+ - Id: 2409
+   AegisName: DUMMY_50
+   Name: Dummy 50
+   Level: 50
+   Hp: 99999999
+   Defense: 50
+   MagicDefense: 50
+   Size: Medium
+   Race: Formless
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 200
+   DamageMotion: 1000
+   Class: Guardian
+   Modes:
+     NoRandomWalk: true
+     TeleportBlock: true
+     KnockBackImmune: true
+     Mvp: true
+     
+ - Id: 2410
+   AegisName: DUMMY_100
+   Name: Dummy 100
+   Level: 100
+   Hp: 99999999
+   Defense: 90
+   MagicDefense: 90
+   Size: Medium
+   Race: Formless
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 200
+   DamageMotion: 1000
+   Class: Guardian
+   Modes:
+     NoRandomWalk: true
+     TeleportBlock: true
+     KnockBackImmune: true
+     Mvp: true
+ - Id: 2411
+   AegisName: DUMMY_150
+   Name: Dummy 150
+   Level: 99
+   Hp: 99999999
+   Defense: 50
+   MagicDefense: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 200
+   DamageMotion: 1000
+   Class: Guardian
+   Modes:
+     NoRandomWalk: true
+     TeleportBlock: true
+     KnockBackImmune: true
+     
+ - Id: 30010
+   AegisName: HERMES
+   Name: Hermes
+   Level: 99
+   Hp: 16150
+   Sp: 0
+   BaseExp: 200
+   JobExp: 22
+   Attack: 500
+   Attack2: 505
+   Defense: 20
+   MagicDefense: 30
+   Str: 10
+   Agi: 100
+   Vit: 80
+   Int: 240
+   Dex: 150
+   Luk: 70
+   FollowRange: 2
+   AttackRange: 9
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 50
+   AttackMotion: 50
+   DamageMotion: 100
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+     ChangeChase: false
+    
+ - Id: 30011
+   AegisName: DIRKUS
+   Name: Biggus Dirkus
+   Level: 99
+   Hp: 43333
+   Sp: 2500
+   BaseExp: 200
+   JobExp: 22
+   Attack: 1200
+   Attack2: 1200
+   Defense: 60
+   MagicDefense: 40
+   Str: 150
+   Agi: 60
+   Vit: 60
+   Int: 20
+   Dex: 129
+   Luk: 100
+   AttackRange: 1
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 60
+   AttackDelay: 200
+   AttackMotion: 200
+   DamageMotion: 50
+   Ai: 21
+   Modes:
+          
+     PcBehavior: true
+     StayDead: true
+
+ - Id: 30012
+   AegisName: CANELUS
+   Name: Canelus
+   Level: 99
+   Hp: 33333
+   Sp: 2500
+   BaseExp: 200
+   JobExp: 22
+   Attack: 500
+   Attack2: 500
+   Defense: 60
+   MagicDefense: 40
+   Str: 130
+   Agi: 50
+   Vit: 100
+   Int: 20
+   Dex: 129
+   Luk: 1
+   AttackRange: 5
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 80
+   AttackDelay: 500
+   AttackMotion: 200
+   DamageMotion: 50
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+
+ - Id: 30013
+   AegisName: ULYSSE
+   Name: Ulysse
+   Level: 99
+   Hp: 25314
+   BaseExp: 22107
+   JobExp: 25102
+   Attack: 100
+   Attack2: 100
+   Defense: 30
+   MagicDefense: 30
+   Str: 136
+   Agi: 99
+   Vit: 40
+   Int: 200
+   Dex: 149
+   Luk: 49
+   FollowRange: 2
+   AttackRange: 7
+   SkillRange: 40
+   ChaseRange: 40
+   Size: Medium
+   Race: Demihuman
+   Element: Fire
+   ElementLevel: 1
+   WalkSpeed: 100
+   AttackDelay: 190
+   AttackMotion: 200
+   DamageMotion: 80
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+     ChangeChase: false
+     
+ - Id: 30014
+   AegisName: RUDEUS
+   Name: Rudeus
+   Level: 99
+   Hp: 12056
+   Sp: 0
+   BaseExp: 20000
+   JobExp: 22
+   Attack: 50
+   Attack2: 50
+   Defense: 30
+   MagicDefense: 40
+   Str: 10
+   Agi: 30
+   Vit: 90
+   Int: 50
+   Dex: 149
+   Luk: 20
+   FollowRange: 6
+   AttackRange: 6
+   SkillRange: 40
+   ChaseRange: 40
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 100
+   AttackMotion: 300
+   DamageMotion: 300
+   Ai: 01
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+     ChangeChase: false
+     
+ - Id: 30015
+   AegisName: SINGE
+   Name: Singe Horizontal
+   Level: 99
+   Hp: 19056
+   Sp: 0
+   BaseExp: 20000
+   JobExp: 22
+   Attack: 3000
+   Attack2: 3000
+   Defense: 50
+   MagicDefense: 40
+   Str: 150
+   Agi: 40
+   Vit: 100
+   Int: 50
+   Dex: 149
+   Luk: 50
+   FollowRange: 5
+   AttackRange: 1
+   SkillRange: 40
+   ChaseRange: 40
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 200
+   AttackMotion: 200
+   DamageMotion: 200
+   Ai: 21
+   Modes:
+          
+     PcBehavior: true
+     StayDead: true
+
+ - Id: 30016
+   AegisName: DOMINUS
+   Name: Dominus
+   Level: 99
+   Hp: 13999
+   Sp: 0
+   BaseExp: 20000
+   JobExp: 22
+   Attack: 201
+   Attack2: 201
+   Defense: 50
+   MagicDefense: 40
+   Str: 1
+   Agi: 40
+   Vit: 1
+   Int: 120
+   Dex: 149
+   Luk: 50
+   FollowRange: 3
+   AttackRange: 9
+   SkillRange: 40
+   ChaseRange: 40
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 100
+   AttackMotion: 100
+   DamageMotion: 200
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+
+ - Id: 30017
+   AegisName: TAYLA
+   Name: Tayla
+   JapaneseName: Tayla
+   Level: 99
+   Hp: 18478
+   BaseExp: 1
+   JobExp: 1
+   Attack: 100
+   Attack2: 100
+   Defense: 30
+   MagicDefense: 40
+   Str: 1
+   Agi: 200
+   Vit: 1
+   Int: 50
+   Dex: 200
+   Luk: 90
+   AttackRange: 1
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 200
+   AttackMotion: 200
+   DamageMotion: 100
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+     ChangeChase: false
+
+ - Id: 30018
+   AegisName: MAMMOUTH
+   Name: Mammouth
+   JapaneseName: Mammouth
+   Level: 99
+   Hp: 24853
+   BaseExp: 1
+   JobExp: 1
+   Attack: 2000
+   Attack2: 2000
+   Defense: 50
+   MagicDefense: 50
+   Str: 150
+   Agi: 100
+   Vit: 1
+   Int: 20
+   Dex: 100
+   Luk: 40
+   AttackRange: 2
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 80
+   AttackDelay: 200
+   AttackMotion: 200
+   DamageMotion: 100
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+#     ChangeChase: false
+
+ - Id: 30019
+   AegisName: SEIGNEURINCUBE
+   Name: Seigneur Incube
+   Level: 99
+   Hp: 13450
+   Sp: 1000
+   BaseExp: 1
+   JobExp: 1
+   Attack: 100
+   Attack2: 100
+   Defense: 30
+   MagicDefense: 30
+   Str: 10
+   Agi: 100
+   Vit: 80
+   Int: 240
+   Dex: 150
+   Luk: 70
+   FollowRange: 5
+   AttackRange: 9
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 50
+   AttackMotion: 50
+   DamageMotion: 100
+   Ai: 01
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+     ChangeChase: false
+
+ - Id: 30020
+   AegisName: GAIUS
+   Name: Gaius
+   Level: 99
+   Hp: 15399
+   Sp: 0
+   BaseExp: 20000
+   JobExp: 22
+   Attack: 201
+   Attack2: 201
+   Defense: 50
+   MagicDefense: 40
+   Str: 1
+   Agi: 40
+   Vit: 90
+   Int: 20
+   Dex: 149
+   Luk: 50
+   AttackRange: 5
+   AttackRange: 9
+   SkillRange: 40
+   ChaseRange: 40
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 100
+   AttackMotion: 100
+   DamageMotion: 200
+   Ai: 01
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+     ChangeChase: false
+
+ - Id: 30021
+   AegisName: LEZARD
+   Name: Lezard Valeth
+   Level: 99
+   Hp: 15478
+   BaseExp: 100000
+   JobExp: 117800
+   Attack: 100
+   Attack2: 100
+   Defense: 30
+   MagicDefense: 40
+   Agi: 9
+   Vit: 100
+   Int: 1
+   Dex: 149
+   Luk: 1
+   FollowRange: 2
+   AttackRange: 8
+   SkillRange: 50
+   ChaseRange: 50
+   Size: Medium
+   Race: Demihuman
+   Element: Fire
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 200
+   AttackMotion: 200
+   DamageMotion: 100
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+
+ - Id: 30022
+   AegisName: DARWINIA
+   Name: Darwinia
+   Level: 99
+   Hp: 23314
+   BaseExp: 22107
+   JobExp: 25102
+   Attack: 100
+   Attack2: 100
+   Defense: 30
+   MagicDefense: 30
+   Str: 136
+   Agi: 99
+   Vit: 30
+   Int: 200
+   Dex: 149
+   Luk: 49
+   FollowRange: 3
+   AttackRange: 7
+   SkillRange: 40
+   ChaseRange: 40
+   Size: Medium
+   Race: Demihuman
+   Element: Fire
+   ElementLevel: 1
+   WalkSpeed: 100
+   AttackDelay: 190
+   AttackMotion: 200
+   DamageMotion: 80
+   Ai: 21
+   Modes:
+          
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     KnockBackImmune: true
+     ChangeChase: false
+          
+ - Id: 30099
+   AegisName: Shtedy
+   Name: Shtedy
+   Level: 1
+   Hp: 1302
+   Sp: 0
+   BaseExp: 20000
+   JobExp: 22
+   Attack: 20
+   Attack2: 20
+   Defense: 0
+   MagicDefense: 40
+   Str: 15
+   Agi: 15
+   Vit: 15
+   Int: 15
+   Dex: 15
+   Luk: 15
+   AttackRange: 1
+   SkillRange: 40
+   ChaseRange: 40
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 1200
+   AttackMotion: 1200
+   DamageMotion: 600
+   Ai: 21
+   Modes:
+          
+     PcBehavior: true
+     StayDead: true
+     
+ - Id: 30100
+   AegisName: CASTOR
+   Name: Castor
+   Level: 99
+   Hp: 13999
+   Sp: 0
+   BaseExp: 20000
+   JobExp: 22
+   Attack: 201
+   Attack2: 201
+   Defense: 50
+   MagicDefense: 40
+   Str: 1
+   Agi: 40
+   Vit: 1
+   Int: 120
+   Dex: 149
+   Luk: 50
+   AttackRange: 9
+   SkillRange: 40
+   ChaseRange: 40
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 90
+   AttackDelay: 100
+   AttackMotion: 100
+   DamageMotion: 200
+   Ai: 01
+   Modes:
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+
+ - Id: 30101
+   AegisName: Magu
+   Name: Magu
+   Level: 99
+   Hp: 6500
+   Sp: 867
+   BaseExp: 1
+   JobExp: 1
+   Attack: 45
+   Attack2: 45
+   Defense: 12
+   MagicDefense: 10
+   Str: 1
+   Agi: 40
+   Vit: 70
+   Int: 120
+   Dex: 120
+   Luk: 12
+   AttackRange: 9
+   SkillRange: 40
+   ChaseRange: 40
+   Size: Medium
+   Race: Demihuman
+   Element: Neutral
+   ElementLevel: 1
+   WalkSpeed: 110
+   AttackDelay: 1000
+   AttackMotion: 1000
+   DamageMotion: 200
+   Ai: 21
+   Modes:
+     SkillOnly: true
+     PcBehavior: true
+     StayDead: true
+     
+ - Id: 2311
+   AegisName: MANANANGGAL
+   Name: Manananggal
+   Level: 107
+   Hp: 20451
+   BaseExp: 1845
+   JobExp: 1759
+   Attack: 801
+   Attack2: 103
+   Defense: 64
+   MagicDefense: 31
+   Str: 75
+   Agi: 85
+   Vit: 45
+   Int: 71
+   Dex: 75
+   Luk: 46
+   AttackRange: 1
+   SkillRange: 10
+   ChaseRange: 12
+   Size: Medium
+   Race: Demon
+   Element: Dark
+   ElementLevel: 2
+   WalkSpeed: 100
+   AttackDelay: 280
+   AttackMotion: 720
+   DamageMotion: 360
+   Ai: 21
+   Modes:
+     Detector: true
+
+ - Id: 30200
+   AegisName: SOUL_TAKER
+   Name: Soul Taker
+   Level: 107
+   Hp: 204510
+   BaseExp: 1845
+   JobExp: 1759
+   Attack: 10010
+   Attack2: 20000
+   Defense: 100
+   MagicDefense: 100
+   Str: 120
+   Agi: 130
+   Vit: 120
+   Int: 150
+   Dex: 200
+   Luk: 1
+   AttackRange: 1
+   SkillRange: 15
+   ChaseRange: 15
+   Size: Medium
+   Race: Demon
+   Element: Dark
+   ElementLevel: 4
+   WalkSpeed: 80
+   AttackDelay: 280
+   AttackMotion: 520
+   DamageMotion: 210
+   Ai: 21
+   Modes:
+     Detector: true
+     PcBehavior: true
+     

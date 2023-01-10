@@ -1,0 +1,657 @@
+#Format : - [not] enemy|self|friend|master status [[[><]=]valeur]]
+Header:
+  Type: MOB_EXPANDED_AI_CONDITIONS_DB
+  Version: 1
+
+Body:
+ - e_always:
+   - self exists
+ - friendexists:
+   - friend exists
+
+ - targetexists:
+   - target exists
+
+ - friend_is_player_ai:
+   - or:
+     - friend pcbehavior
+     - friend player
+
+ - target_is_player_ai:
+   - or:
+     - target pcbehavior
+     - target player
+
+ - target_far:
+   - target distance_from_self >=5
+
+ - friend_is_alive:
+   - friend health >0
+
+ - friend_needs_recovery:
+   - or:
+     - friend sleep
+     - friend petrifying
+     - friend stone
+     - friend stun
+     - friend freeze
+
+ - friendcurable:
+   - or:
+     - friend silence
+     - friend confusion
+     - friend blind
+
+ - friend_needs_heal_low:
+   - friend percenthealth <50%
+   - not friend berserk
+   - not friend undead
+
+ - friend_needs_heal:
+   - friend percenthealth <100%
+   - not friend berserk
+   - not friend undead
+
+ - friend_needs_slim:
+   - friend percenthealth <100%
+   - not friend berserk
+
+ - friend_needs_slim_far:
+   - friend percenthealth <100%
+   - friend distance_from_self >3
+   - not friend berserk
+   
+ - friend_needs_blessing:
+   - not friend boss
+   - or:
+     - not friend blessing
+     - friend curse
+
+ - friend_needs_aspersio:
+   - or:
+     - and :
+       - not friend holyattack
+       - or:
+         - friendtarget undead >0
+         - friendtarget dark >0
+     - and :
+       - friend neutralattack
+       - friendtarget ghost >0
+
+ - selfcellempty:
+   - not self safetywall
+   - not self pneuma
+   - not self landprotector
+   - not self icewall
+
+ - friend_needs_land:
+   - not friend landprotector
+
+ - friendcellempty:
+   - friend percenthealth >0%
+   - not friend safetywall
+   - not friend pneuma
+   - not friend landprotector
+   - not friend icewall
+
+ - can_damage_neutral:
+   - nor:
+     - target ghostarmor >1
+     - target neutralresist >=100%
+
+ - moderate_neutral_reflect:
+   - can_damage_neutral
+   - nand:
+     - target neutralresist >=50%
+     - target ghostarmor >0
+   - nand:
+     - target reflectphy >=30%
+     - nxor :
+       - target neutralresist >=50%
+       - target ghostarmor >0
+
+ - ready_for_suffra:
+   - friend player
+   - not friend suffragium
+
+ - can_asura:
+   - target health >=4000
+   - self spiritball >=5
+   - self explosionspirits
+   - not target safetywall
+   - not target cicada
+   - not target kaupe
+   - moderate_neutral_reflect
+
+ - can_asura_player:
+   - target player
+   - can_asura
+
+ - can_asura_mvp:
+   - target mvp
+   - self spiritball >=5
+   - self explosionspirits
+   - not target safetywall
+   - can_damage_neutral
+   - not target cicada
+
+ - explosion:
+   - not self explosionspirits
+   - self spiritball >=5
+
+ - notballs:
+   - self spiritball <5
+ - ready_for_decrease:
+   - not target decreaseagi
+   - not target statusimmune
+#   - target distance_from_self >=7
+ - ready_for_mute:
+   - not target silence
+   - not target statusimmune
+   - target silenceresist <60%
+
+ - ready_for_self_agi:
+   - not self increaseagi
+   - not self quagmire
+
+ - ready_for_friend_agi:
+   - not friend increaseagi
+   - not friend quagmire
+
+
+ - chase_absorb:
+   - target spiritball >4
+
+ - melee_absorb:
+   - target job 4016
+
+ - finger_fallback:
+   - not target pneuma
+   - self spiritball >=5
+#put that to force chasing with asura
+   - not can_asura
+
+ - selfcloserangecellempty:
+   - or:
+     - target job 4016
+     - target distance_from_self <=6
+   - or:
+     - target job 25 # ninja
+     - not target range >3
+   - selfcellempty
+
+ - friendcloserangecellempty:
+   - target distance_from_friend <=5
+   - not target range >3
+   - friendcellempty
+
+ - self_long_range_cell_empty:
+   - target range >3
+   - selfcellempty
+
+ - friend_long_range_cell_empty:
+   - target range >3
+   - friendcellempty
+
+ - ready_for_pneuma:
+   - self_long_range_cell_empty
+   - target attack >=200
+
+ - offensive_pneuma:
+   - target job 4010
+   - not target safetywall
+   - not target pneuma
+
+ - safety_wall_pushable:
+   - target safetywall
+   - not target knockbackimmune
+
+ - ready_for_palm:
+   - or:
+     - safety_wall_pushable
+     - target cicada
+   - moderate_neutral_reflect
+
+ - hassafety:
+   - target safetywall
+
+ - selfgan: #Check pour faire un gangbangtime
+   - or:
+     - self pneuma
+     - self landprotector
+   - not target range >3
+   - target distance_from_self <7
+
+ - allygan: #Check pour faire un gangbangtime
+   - friend landprotector
+   - not target range >3
+   - target distance_from_friend <7
+
+ - target_gan: #Check pour faire un gangbangtime
+   - or:
+     - target pneuma
+     - target landprotector
+     - target walloffog
+     - target safetywall
+
+ - selfnotearth:
+   - not self earthattack
+
+ - heal:
+   - not friend percenthealth >=99
+
+ - ready_for_vulcan:
+   - not target pneuma
+   - or:
+     - and:
+       - or:
+         - target lexaeterna
+         - target freeze
+       - not target defender
+       - self windattack
+       - target health <10000
+     - target health <=1
+
+ - freeze_defender_or_pneuma:
+   - or:
+     - target freeze
+     - target defender
+     - target pneuma
+     - target health >1
+
+ - self_not_wind:
+   - not self windattack
+   - target freeze
+
+ - target_not_freeze:
+   - not target freeze
+   - not target lexaeterna
+
+ - target_can_stun:
+   - target stunresist <50          #equip + stats + ...
+   - not target stun
+
+
+#######################################################
+########################################################
+## Ceci est le nouveau fichier utilisé par le moteur
+
+ - ready_for_volcano:
+   - or:
+     - target stone
+     - target petrifying
+   - not self volcano
+   - not self safetywall
+   - target distance_from_self <=5
+   - not self walloffog
+
+ - ready_for_web:
+   - not target spiderweb
+   - not target landprotector
+   - not target icewall
+
+ - ready_for_firebolt:
+#   - target stone
+#   - target earth
+   - not target holy >3
+   - nor:
+     - target water >0
+     - target fire >0
+
+ - ready_for_lightning:
+   - or:
+     - not target spiderweb
+     - target distance_from_self <2
+   - target water >0
+   - not target holy >3
+
+ - transforming_into_stone:
+   - or:
+     - and:
+       - target stone
+       - not target earth >0
+     - target petrifying
+
+ - ready_for_ice:
+   - or:
+     - not target spiderweb
+     - target distance_from_self <2
+   - target fire >0
+   - not target holy >3
+
+ - targetholy:
+   - target holy >3
+
+ - target_not_holy:
+   - not target holy >3
+
+ - can_stone_curse:
+   - not target stone
+   - not target stoneresist >80%
+   - not target petrifying
+
+ - safe_safetywall:
+   - selfcloserangecellempty
+
+ - fog:
+   - target distance_from_self >3
+   - target range >3
+   - not self walloffog
+   - not self volcano
+   - not self landprotector
+   - not self icewall   
+   - self can_place_skill 404
+
+ - getAttack:
+   - target attack >400
+
+ - self_fightwind:
+   - target windarmor
+   - not self earthattack
+
+ - self_fightearth:
+   - target eartharmor
+   - not self fireattack
+
+ - self_fightwater:
+   - target waterarmor
+   - not self windattack
+
+ - self_fightfire:
+   - target firearmor
+   - not self waterattack
+
+ - self_fightghost:
+   - target ghostarmor
+   - not self ghostattack
+
+ - self_fightdark:
+   - or:
+     - target darkarmor
+     - target undeadarmor
+   - not self holyattack
+
+ - self_fightholy:
+   - target holyarmor
+   - not self darkattack
+
+ - union:
+   - nxor:
+     - self percenthealth <45
+     - self union
+
+ - noknockback:
+   - target knockbackimmune
+
+ - ready_vortex:
+   - target distance_from_self >2
+
+ - ready_to_cloak:
+   - not self cloaking
+   - not self hiding
+
+ - ready_to_finalstrike:
+   - not target pneuma
+   - self soul
+
+ - ninja_hide_attack:
+   - target pneuma
+   - target distance_from_self >=2
+   - not self hiding
+
+ - hiding:
+   - target hiding
+
+ - target_close_pneuma_aligned:
+   - target pneuma
+   - target distance_from_self <=1
+   - target isaligned
+   - not target knockbackimmune
+
+ - friend_needs_heal_close:
+   - friend percenthealth <=99
+   - friend distance_from_self <=3
+
+ - friend_needs_heal_far:
+   - friend percenthealth <=99
+   - friend distance_from_self >3
+
+ - can_damage_neutral_ranged:
+   - not target pneuma
+   - nor:
+     - target ghostarmor >1
+     - target neutralresist >=100%
+
+ - ready_for_stormgust:
+   - not target holy >3
+   - not target water >1
+   - not target wind >2
+
+ - ready_for_meteor:
+   - not target holy >3
+   - not target fire >1
+   - not target water >2
+
+ - friend_fightwind:
+   - friendtarget windarmor
+   - not friend earthattack
+   - friend attack >=200
+
+ - friend_fightearth:
+   - friendtarget eartharmor
+   - not friend fireattack
+   - friend attack >=200
+
+ - friend_fightwater:
+   - friendtarget waterarmor
+   - not friend windattack
+   - friend attack >=200
+
+ - friend_fightfire:
+   - friendtarget firearmor
+   - not friend waterattack
+   - friend attack >=200
+
+ - friend_fightghost:
+   - friendtarget ghostarmor
+   - not friend ghostattack
+   - friend attack >=200
+
+ - friend_fightdark:
+   - or:
+     - friendtarget darkarmor
+     - friendtarget undeadarmor
+   - not friend holyattack
+   - friend attack >=200
+
+ - friend_fightholy:
+   - friendtarget holyarmor
+   - not friend darkattack
+   - friend attack >=200
+
+ - target_close_not_pneuma:
+   - target distance_from_self <=5
+   - not target pneuma
+   - not target knockbackimmune
+
+ - target_ranged:
+   - target range >3
+
+ - self_needs_defender:
+   - target_ranged
+   - not self defender
+
+ - friend_needs_defender:
+   - target_ranged
+   - and:
+     - not friend defender
+     - friend devotion
+
+ - friend_needs_autoguard:
+    - friend is_devotee
+    - not friend autoguard
+
+ - friend_needs_reflect:
+    - friend devotion
+    - not friend reflectshield
+
+ - friend_needs_dispell:
+    - or:
+      - and:
+        - friend berserk
+        - friend percenthealth <=20%
+      - friend freeze
+      - friend stone
+      - friend petrifying
+      - friend changeud
+
+ - friend_needs_dispell_idle:
+    - or:
+      - friend lexaeterna
+      - friend_needs_dispell
+
+
+ - target_dispell:
+   - or:
+     - target blessing
+     - target increaseagi
+     - target explosionspirits
+     - target defender
+     - target autoguard
+     - target reflectshield
+     - target devotion
+     - target superagi
+
+ - ready_for_devotion:
+   - not friend hellpower
+   - not friend devotion
+   - not friend job 6012
+   - not friend job 4015
+   - not friend job 14
+   - self devotees <5
+   - not friend leveldiff >10
+   
+ - ready_for_providence:
+   - friend player
+   - not friend providence
+   - not friend job 4015
+   - not friend job 14 
+
+ - self_idle_defender_cancel:
+   - self defender
+
+ - ennemi_proche:
+   - target distance_from_self <=4
+
+ - ready_for_glacon:
+   - not target freeze
+   - target distance_from_self <=2
+
+ - ready_for_ice_spear:
+   - not target freeze
+
+ - ready_for_resu:
+   - friend percenthealth <=0%
+   - not friend hellpower
+   - not self battleground
+
+ - friend_ready_for_assum:
+   - not self battleground
+   - not friend assumptio
+   - not friend skillimmune
+
+ - friend_ready_for_kyrie:
+   - self battleground
+   - not friend kyrie
+   - not friend job 6012
+
+ - self_ready_for_assum:
+   - not self battleground
+   - not self assumptio
+
+ - self_ready_for_kyrie:
+   - self battleground
+   - not self kyrie
+
+ - friend_needs_bragi:
+   - friend_is_player_ai
+   - not self dancing
+   - not friend bragi
+   - friend distance_from_self <=3
+
+ - friend_needs_apple:
+   - friend_is_player_ai
+   - not friend apple
+   - friend distance_from_self <=3
+
+ - friend_needs_sunset:
+   - friend_is_player_ai
+   - not friend sunset
+   - friend distance_from_self <=3
+
+ - friend_needs_dance:
+   - friend_is_player_ai
+   - not master exists
+   - or:
+     - not friend sunset
+     - not friend apple
+     - not friend bragi
+
+ - ready_to_dissonance:
+   - target health =1
+   - target distance_from_self <=3
+   - not self dancing
+
+ - target_awaits_slowgrace:
+   - target_is_player_ai
+   - not target slowgrace
+
+ - target_ready_for_slowgrace:
+   - target_is_player_ai     
+   - not self dancing
+   - not target slowgrace
+   - target distance_from_self <=3
+
+ - friend_ready_for_kaizel:
+   - not self battleground
+   - not friend kaizel
+
+ - self_ready_for_kaizel:
+   - not self battleground
+   - not self kaizel
+
+#magu
+ - magu_bolt:
+   - self nodelay 19
+   - self nodelay 20
+   - self nodelay 14
+
+ - magu_soulstrike:
+   - not target neutral
+   - not target holy
+   - magu_bolt
+
+ - adapt_to_ghost:
+   - target skillbeingcast 13
+ - adapt_to_fire:
+   - target skillbeingcast 19
+ - adapt_to_wind:
+   - target skillbeingcast 20
+ - adapt_to_water:
+   - target skillbeingcast 14
+ - ready_to_hide:
+   - not self hiding
+   - target skillbeingcast 271 #asura
+ - ready_to_dehide:
+   - self hiding
+   - not target skillbeingcast 271
+ - react_to_cast:
+   - target skillbeingcast -1
+
+ - friend_needs_chemical:
+   - friend player
+   - or:
+     - not friend chemicalweapon
+     - not friend chemicalshield
+     - not friend chemicalhelm
+     - not friend chemicalarmor

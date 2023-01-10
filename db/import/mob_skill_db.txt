@@ -1,0 +1,512 @@
+// Custom Mob Skill Database
+//
+// Structure of Database:
+// MobID,Dummy value (info only),State,SkillID,SkillLv,Rate,CastTime,Delay,Cancelable,Target,Condition type,Condition value,val1,val2,val3,val4,val5,Emotion,Chat
+//
+// RATE: the chance of the skill being casted when the condition is fulfilled (10000 = 100%).
+// DELAY: the time (in milliseconds) before attempting to recast the same skill.
+//
+// STATE:
+//	any (except dead) / idle (in standby) / walk (in movement) / dead (on killed) /
+//	loot /attack / angry (like attack, except player has not attacked mob yet) /
+//	chase (following target, after being attacked) / follow (following target,
+//	without being attacked) / anytarget (attack+angry+chase+follow)
+//
+// TARGET:
+//	target (current target) / self / friend / master / randomtarget (any enemy within skill's range)
+//
+//	The following are for ground-skills, a random target tile is selected from the specified area:
+//	    around1 (3x3 area around self) / around2 (5x5 area around self) /
+//	    around3 (7x7 area around self) / around4 (9x9 area around self) /
+//	    around5 (3x3 area around target) / around6 (5x5 area around target) /
+//	    around7 (7x7 area around target) / around8 (9x9 area around target) /
+//	    around = around4
+//
+// CONDITION:
+//	always			Unconditional (no condition value).
+//	onspawn			When mob spawns/respawns (no condition value).
+//	myhpltmaxrate		When mob's HP drops to the specified %.
+//	myhpinrate		When mob's HP is in a certain % range (condition value = lower bound, val1 = upper bound).
+//	mystatuson		If mob has the specified abnormality in status.
+//	mystatusoff		If mob has ended the specified abnormality in status.
+//      masterhpltmaxrate
+//	masterattacked
+//	friendhpltmaxrate	When mob's friend's HP drops to the specified %.
+//	friendhpinrate		When mob's friend's HP is in a certain % range (condition value = lower bound, val1 = upper bound).
+//	friendstatuson		If friend has the specified abnormality in status.
+//	friendstatusoff		If friend has ended the specified abnormality in status.
+//	attackpcgt		When attack PCs become greater than specified number.
+//	attackpcge		When attack PCs become greater than or equal to the specified number.
+//	slavelt			When number of slaves is less than the original specified number.
+//	slavele			When number of slaves is less than or equal to the original specified number.
+//	closedattacked		When close range melee attacked (no condition value).
+//	longrangeattacked	When long range attacked, ex. bows, guns, ranged skills (no condition value).
+//	skillused		When the specified skill is used on the mob.
+//	afterskill		After mob casts the specified skill.
+//	casttargeted		When a target is in cast range (no condition value).
+//	rudeattacked		When mob is rude attacked (no condition value).
+//	expanded		Expanded conditions. See file mob_expanded_conditions_db.yml
+//
+//	Status abnormalities specified through the statuson/statusoff system:
+//	    anybad (any type of state change) / stone / freeze / stun / sleep /
+//	    poison / curse / silence / confusion / blind / hiding / sight (unhidden)
+//
+// Note: if a negative MobID is provided, the skill will be treated as 'global':
+//	-1: added for all boss types.
+//	-2: added for all normal types.
+//	-3: added for all mobs.
+
+
+//31002,Junin@NJ_TESLA,anytarget,541,5,10000,200,500,yes,self,expanded,ready_for_lightning,,,,,,,
+//31002,Junin@Nj_WATER,anytarget,535,10,10000,200,10000,yes,self,always,,,,,,,,
+
+31002,Junin@NJ_GLACON,anytarget,539,5,10000,200,200,yes,self,afterskill,3046,,,,,,,
+31002,Junin@DUMMY,anytarget,3046,10,10000,0,300,yes,randomtarget,expanded,ready_for_glacon,,,2,,,,
+31002,Junin@NJ_ICE,anytarget,537,10,10000,20,400,yes,target,always,,,,,,,,
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////KRAKEN//////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+30000,KRAKEn@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30000,KRAKEN@PR_RESURRECT,any,54,1,10000,0,1000,no,friend,expanded,ready_for_resu,,,,,,,
+30000,KRAKEN@AL_Hiding,anytarget,51,11,10000,0,0,yes,self,expanded,ready_to_hide,,,,,,,
+30000,KRAKEN@AL_Hiding,any,51,11,10000,0,0,yes,self,expanded,ready_to_dehide,1,3,,,,,
+30000,KRAKEN@AL_PNEUMA,anytarget,25,1,10000,0,500,no,around5,expanded,offensive_pneuma,,,,,,,
+30000,KRAKEN@AL_PNEUMA,anytarget,25,1,10000,0,300,yes,around1,expanded,ready_for_pneuma,,,,,,,
+30000,KRAKEN@AL_PNEUMA,any,25,1,10000,0,100,yes,self,longrangeattacked,,,,,,,,
+30000,KRAKEN@AC_SIGHT,any,10,1,10000,0,15000,no,self,skillused,528,,,,,,,
+30000,KRAKEN@MO_FULLHEAL,anytarget,687,1,10000,0,5000,no,self,afterskill,271,,,,,,,
+30000,KRAKEN@MO_EXPLOSIONSPIRITS,any,270,5,10000,0,100,no,self,expanded,explosion,,,,,,,
+30000,KRAKEN@AC_DECAGI,chase,30,10,5000,50,500,no,target,expanded,ready_for_decrease,,,,,,,
+30000,KRAKEN@MO_EXTREMITYFIST,anytarget,271,5,10000,60,130,no,randomtarget,expanded,can_asura_player,settarget,3,,,,,
+30000,KRAKEN@MO_EXTREMITYFIST,anytarget,271,5,10000,60,130,no,randomtarget,expanded,can_asura_mvp,settarget,9,,,,,
+30000,KRAKEN@MO_EXTREMITYFIST,anytarget,271,5,10000,60,130,no,randomtarget,expanded,can_asura,locktarget,9,,,,,
+30000,KRAKEN@CH_PALMSTRIKE,attack,370,5,10000,0,200,yes,target,expanded,ready_for_palm,,,,,,,
+30000,KRAKEN@MO_FINGEROFFENSIVE,anytarget,267,5,10000,50,200,no,target,expanded,finger_fallback,,,,,,,
+30000,KRAKEN@NPC_AGIUP,chase,29,10,7500,50,100,no,self,expanded,ready_for_self_agi,,,,,,,
+30000,KRAKEN@NPC_AGIUP,idle,29,10,7500,50,100,no,self,expanded,ready_for_self_agi,,,,,,,
+30000,KRAKEN@MO_ABSORBSPIRITS,chase,262,1,8000,50,300,no,randomtarget,expanded,chase_absorb,,,,,,,
+30000,KRAKEN@MO_ABSORBSPIRITS,attack,262,1,5000,50,300,no,target,expanded,melee_absorb,,,,,,,
+//30000,KEN@MO_BODYRELOCATION,attack,264,1,5000,0,0,no,around1,always,,,,,,,,
+30000,KRAKEN@CH_SOULCOLLECT,any,401,1,10000,50,150,no,self,expanded,notballs,,,,,,,
+30000,KRAKEN@AL_HEAL,idle,28,10,10000,0,0,no,self,myhpltmaxrate,99,,,,,,,
+30000,KRAKEN@AL_HEAL,idle,28,10,10000,0,0,no,friend,friendhpltmaxrate,99,,,,,,,
+30000,KRAKEN@HP_BLESSING,any,34,10,10000,0,1000,no,friend,expanded,friend_needs_blessing,,,,,,,
+30000,KRAKEN@NPC_AGIUP,chase,29,10,10000,50,100,no,friend,expanded,ready_for_friend_agi,,,,,,,
+30000,KRAKEN@NPC_AGIUP,idle,29,10,10000,50,100,no,friend,expanded,ready_for_friend_agi,,,,,,,
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////LEVANTINE//////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+//30002,Levantine Aldehyde@WZ_FIREPILLAR,anytarget,80,10,10000,20,0,no,around8,always,,,,,,,,
+
+30002,Levantine@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+//30002,Levantine@PR_RESURRECT,any,54,1,10000,0,1000,no,friend,expanded,ready_for_resu,,,,,,,
+//30002,Levantine Aldehyde@MG_SAFETYWALL,anytarget,12,10,10000,50,0,yes,friend,expanded,friendcloserangecellempty,,,,,,,
+//30002,Levantine Aldehyde@MG_SAFETYWALL,anytarget,12,10,10000,50,0,yes,self,expanded,selfcloserangecellempty,,,,,,,
+//30002,Levantine Aldehyde@WZ_GAN,anytarget,483,1,10000,50,0,yes,self,expanded,selfgan,,,,,,,
+//30002,Levantine Aldehyde@WZ_GAN,anytarget,483,1,10000,50,0,yes,friend,expanded,allygan,,,,,,,
+//30002,Levantine Aldehyde@WZ_GAN,anytarget,483,1,10000,50,0,yes,target,expanded,target_gan,,,,,,,
+30002,Levantine Aldehyde@HW_POWER,anytarget,366,10,10000,200,5000,yes,self,mystatusoff,amplify,,,,,,,
+30002,Levantine Aldehyde@WZ_STORMGUST,anytarget,89,10,10000,10,0,yes,target,afterskill,366,,,,,,,
+30002,Levantine Aldehyde@HW_METEOR,anytarget,83,10,10000,10,350,yes,target,expanded,ready_for_meteor,,,,,,,
+// 30002,Levantine Aldehyde@MG_THUNDERSTORM,attack,21,10,10000,100,500,yes,target,always,,,,,,,,
+30002,Levantine Aldehyde@MG_ENERGYCOAT,any,157,1,10000,100,10000,yes,self,mystatusoff,energycoat,,,,,,,
+30002,Levantine Aldehyde@WZ_QUAGMIRE,anytarget,92,3,10000,0,5000,yes,target,enemystatusoff,quagmire,,,,,,,
+
+//30002,Levantine Aldehyde@WZ_HEAVENDRIVE,idle,91,5,10000,10,100,yes,randomtarget,always,,,,,,,,
+////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////LEZARD/////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+//30021,Levantine Aldehyde@WZ_FIREPILLAR,anytarget,80,10,10000,20,0,no,around8,always,,,,,,,,
+
+30021,Lezard@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+//30021,Lezard@PR_RESURRECT,any,54,1,10000,0,1000,no,friend,expanded,ready_for_resu,,,,,,,
+30021,Lezard Aldehyde@MG_SAFETYWALL,anytarget,12,10,10000,50,0,yes,friend,expanded,friendcloserangecellempty,,,,,,,
+30021,Lezard Aldehyde@MG_SAFETYWALL,anytarget,12,10,10000,50,0,yes,self,expanded,selfcloserangecellempty,,,,,,,
+30021,Lezard Aldehyde@WZ_GAN,anytarget,483,1,10000,50,0,yes,self,expanded,selfgan,,,,,,,
+30021,Lezard Aldehyde@WZ_GAN,anytarget,483,1,10000,50,0,yes,friend,expanded,allygan,,,,,,,
+30021,Lezard Aldehyde@WZ_GAN,anytarget,483,1,10000,50,0,yes,target,expanded,target_gan,,,,,,,
+// 30021,Lezard Aldehyde@HW_POWER,anytarget,366,10,10000,200,5000,yes,self,mystatusoff,amplify,,,,,,,
+// 30021,Lezard Aldehyde@WZ_STORMGUST,anytarget,89,10,10000,500,0,yes,target,afterskill,366,,,,,,,
+//30021,Lezard Aldehyde@HW_METEOR,anytarget,83,10,10000,500,1000,yes,target,expanded,ready_for_meteor,,,,,,,
+// 30021,Lezard Aldehyde@MG_THUNDERSTORM,attack,21,10,10000,100,500,yes,target,always,,,,,,,,
+30021,Lezard Aldehyde@MG_ENERGYCOAT,any,157,1,10000,100,10000,yes,self,mystatusoff,energycoat,,,,,,,
+30021,Lezard Aldehyde@WZ_QUAGMIRE,anytarget,92,3,10000,0,5000,yes,target,enemystatusoff,quagmire,,,,,,,
+
+//30002,Lezard Aldehyde@WZ_HEAVENDRIVE,idle,91,5,10000,10,100,yes,randomtarget,always,,,,,,,,
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////FULLMETAL////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+30001,Fullmetal@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+//30001,Fullmetal@NPC_SUMMONSLAVE,idle,196,1,10000,500,0,no,self,slavele,0,,,,,,,
+//30001,Fullmetal@NPC_CALLSLAVE,idle,352,1,10000,0,60000,yes,self,always,0,,,,,,,
+// 30001,Fullmetal@NPC_SUMMONSLAVE,chase,196,1,10000,500,0,no,self,slavele,0,30000,,,,,,
+// 30001,Fullmetal@NPC_CALLSLAVE,chase,352,1,10000,0,60000,yes,self,always,0,,,,,,,
+30001,Fullmetal@PR_RESURRECT,any,54,4,10000,0,1000,no,friend,expanded,ready_for_resu,,,,,,,
+//30001,Fullmetal@NPC_EMOTION,idle,197,10,100,0,10000,no,self,always,,,,,,,82,
+30001,FULLMETAL@AL_PNEUMA,any,25,1,10000,0,100,yes,self,longrangeattacked,,,,,,,,
+30001,Fullmetal@PR_STRECOVERY,any,72,1,10000,0,100,yes,friend,expanded,friend_needs_recovery,settarget,12,,,,,
+30001,Fullmetal@PR_CURE,any,35,1,10000,0,100,yes,friend,expanded,friendcurable,,,,,,,
+30001,Fullmetal@HP_BLESSING,any,34,10,10000,0,300,no,friend,expanded,friend_needs_blessing,,,,,,,
+30001,Fullmetal@HP_INCAGI,any,29,10,10000,50,100,no,friend,expanded,ready_for_friend_agi,,,,,,,
+30001,Fullmetal@HP_ASSUMPTIO,any,361,5,10000,100,100,no,friend,expanded,friend_ready_for_assum,,,,,,,
+30001,Fullmetal@PR_KYRIE,any,73,10,10000,200,1000,no,friend,expanded,friend_ready_for_kyrie,,,,,,,
+30001,Fullmetal@HP_BLESSING,any,34,10,10000,0,1000,no,self,mystatusoff,blessing,,,,,,,
+30001,Fullmetal@HP_INCAGI,any,29,10,10000,300,0,no,self,expanded,ready_for_self_agi,,,,,,,
+30001,Fullmetal@HP_ASSUMPTIO,any,361,5,10000,100,0,no,self,expanded,self_ready_for_assum,,,,,,,
+30001,Fullmetal@HP_KYRIE,any,73,10,10000,100,1000,no,self,expanded,self_ready_for_kyrie,,,,,,,
+30001,Fullmetal@HP_ASPER,anytarget,68,5,10000,0,200,no,friend,expanded,friend_needs_aspersio,,,,,,,
+30001,Fullmetal@AL_PNEUMA,anytarget,25,1,10000,0,200,yes,around1,expanded,ready_for_pneuma,,,,,,19,
+30001,Fullmetal@AL_PNEUMA,anytarget,25,1,10000,0,200,yes,friend,expanded,friend_long_range_cell_empty,,,,,,19,
+30001,Fullmetal@AL_HEAL,any,28,10,10000,0,200,yes,friend,expanded,friend_needs_heal_low,,,,,,,
+30001,Fullmetal@PR_LEXAETERNA,anytarget,78,1,8000,0,200,yes,randomtarget,enemystatusoff,lexaeterna,,,,,,,
+30001,Fullmetal@AL_HEAL,any,28,10,10000,0,200,yes,friend,expanded,friend_needs_heal,,,,,,,
+30001,Fullmetal@AL_HEAL,any,28,10,10000,0,200,yes,self,myhpltmaxrate,99,,,,,,,
+
+//30001,Fullmetal@HP_suffra,any,67,3,3300,0,2000,no,friend,expanded,ready_for_suffra,,,,,,,
+
+//30001,Fullmetal@HP_ASSUMPTIO,any,361,5,10000,400,0,no,friend,friendstatusoff,assumptio,,,,,,,
+
+//30001,Fullmetal@AL_PNEUMA,idle,25,1,10000,0,0,yes,self,longrangeattacked,,,,,,,,
+//30001,Fullmetal@AL_DECAGI,chase,30,48,2000,0,10000,yes,target,always,0,,,,,,,
+
+30001,Fullmetal@PR_LEXDIVINA,anytarget,76,10,2000,0,1000,not,target,expanded,ready_for_mute,,,,,,,
+30001,Fullmetal@AC_DECAGI,anytarget,30,10,8000,50,400,no,target,expanded,ready_for_decrease,,,,,,,
+
+//30001,Fullmetal@AL_HEAL,anytarget,28,10,5000,0,200,yes,friend,friendhpltmaxrate,99,,,,,,,
+//30001,Fullmetal@AL_HEAL,anytarget,28,10,5000,0,200,yes,self,myhpltmaxrate,99,,,,,,,
+
+
+//TESTS//
+//30001,Fullmetal@HP_ASSUMPTIO,any,361,5,10000,400,0,no,friend,expanded,hassafety,,,,,,,
+
+
+30010,Hermes@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30010,Hermes@DISSONANCE,anytarget,317,5,10000,0,1000,yes,self,expanded,ready_to_dissonance,,,,,,,
+30010,Hermes@AL_Hiding,anytarget,51,11,10000,0,0,yes,self,expanded,ready_to_hide,,,,,,,
+30010,Hermes@AL_Hiding,any,51,11,10000,0,0,yes,self,expanded,ready_to_dehide,,,,,,,
+30010,Hermes@DUMMY,any,3047,3,10000,0,1000,yes,friend,expanded,friend_needs_dance,settarget,14,,,,,
+30010,Hermes@ADAPTATION,any,304,1,10000,0,0,no,self,mystatuson,dancing,,,,,,,
+30010,Hermes@BRAGI,any,321,15,10000,0,0,no,self,expanded,friend_needs_bragi,,,,,,,
+30010,Hermes@SUNSET,any,320,16,10000,0,0,no,self,expanded,friend_needs_sunset,,,,,,,
+30010,Hermes@APPLE,any,322,15,10000,0,0,no,self,expanded,friend_needs_apple,,,,,,,
+
+
+30010,Hermes@ENDOW,anytarget,282,5,10000,0,2000,yes,self,expanded,self_not_wind,,,,,,,
+30010,Hermes@AV,anytarget,394,10,10000,0,1000,yes,target,expanded,ready_for_vulcan,,,,,,,
+30010,Hermes@TAROT,anytarget,489,5,10000,0,300,yes,target,expanded,freeze_defender_or_pneuma,,,,,,,
+30010,Hermes@FROSTJOKE,anytarget,318,5,10000,0,500,yes,self,expanded,target_not_freeze,,,,,,,
+
+//Dirkus
+//30011,Dirkus@Bash,anytarget,5,10,10000,0,300,yes,target,expanded,target_can_stun,,,,,,,
+
+30011,Dirkus@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30011,Dirkus@LK_BERSERK,anytarget,359,1,10000,0,0,no,self,myhpltmaxrate,20,,,,,,,
+30011,Dirkus@LK_PARRYING,any,356,10,10000,0,0,no,self,mystatusoff,parry,,,,,,,
+30011,Dirkus@LK_CONCENTRATION,any,357,5,10000,0,0,no,self,mystatusoff,concentration,,,,,,,
+30011,Dirkus@LK_AURABLADE,any,355,5,10000,0,0,no,self,mystatusoff,aurablade,,,,,,,
+30011,Dirkus@BB,anytarget,62,10,10000,200,200,no,target,always,,,,,,,,
+
+
+
+//30011,Dirkus@NPC_SUMMONSLAVE,idle,196,4,10000,500,0,no,self,slavele,0,30001,30013,30002,30014,,,
+//30011,Dirkus@NPC_SUMMONSLAVE,chase,196,4,10000,500,0,no,self,slavele,0,30001,30013,30002,30014,,,
+
+
+//Canelus
+30012,Canelus@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30012,Canelus@spiral,anytarget,397,5,10000,100,300,yes,target,always,,,,,,,,
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+30013,ULYSSE@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30013,Ulysse@SA_DISPEL,anytarget,289,5,10000,30,200,no,randomtarget,expanded,target_dispell,,,,,,,
+30013,Ulysse@SA_DISPEL,idle,289,5,10000,100,200,no,friend,expanded,friend_needs_dispell_idle,,,,,,,
+30013,Ulysse@SA_DISPEL,anytarget,289,5,10000,100,200,no,friend,expanded,friend_needs_dispell,,,,,,,
+//30013,Ulysse@SA_ENDOWBLAZE,anytarget,280,5,10000,200,10000,no,friend,expanded,friend_fightearth,,,,,,,
+//30013,Ulysse@SA_ENDOWWATER,anytarget,281,5,10000,200,10000,no,friend,expanded,friend_fightfire,,,,,,,
+//30013,Ulysse@SA_ENDOWWIND,anytarget,282,5,10000,200,10000,no,friend,expanded,friend_fightwater,,,,,,,
+//30013,Ulysse@SA_ENDOWEARTH,anytarget,283,5,10000,200,10000,no,friend,expanded,friend_fightwind,,,,,,,
+30013,Ulysse@MG_SAFETYWALL,anytarget,12,10,10000,50,200,no,self,expanded,selfcloserangecellempty,,,,,,,
+//30013,Ulysse@SA_SPELLBREAK,anytarget,277,5,10000,10,0,no,randomtarget,expanded,react_to_cast,,,,,,,
+//30013,Ulysse@PF_FOG,any,404,1,10000,0,5000,no,self,longrangeattacked,,,,,,,,
+30013,Ulysse@PF_FOG,anytarget,404,1,10000,0,0,no,self,expanded,fog,,,,,,,
+30013,Ulysse@cobweb,anytarget,405,1,10000,0,200,no,randomtarget,expanded,ready_for_web,,,,,,,
+//30013,Ulysse@MG_SAFETYWALL,anytarget,12,10,10000,50,200,no,friend,expanded,friendcloserangecellempty,,,,,,,
+//30013,Ulysse@SA_ABRA,anytarget,290,10,5000,0,7500,no,randomtarget,expanded,target_not_holy,,,,,,,
+//30013,Ulysse@SA_ABRA,anytarget,290,10,10000,0,7500,no,friend,expanded,friendexists,,,,,,,
+//30013,Ulysse@MG_SAFETYWALL,anytarget,12,10,10000,50,200,no,self,expanded,safe_safetywall,,,,,,,
+
+//30013,Ulysse@stonecurse,anytarget,16,10,10000,50,500,no,randomtarget,expanded,can_stone_curse,,,,,,,
+// 30013,Ulysse@firebolt,anytarget,19,10,10000,50,200,no,randomtarget,expanded,ready_for_firebolt,,,,,,,
+// 30013,Ulysse@lightning,anytarget,20,10,10000,50,200,no,randomtarget,expanded,transforming_into_stone,,,,,,,
+// 30013,Ulysse@lightning,anytarget,20,10,10000,50,200,no,randomtarget,expanded,ready_for_lightning,,,1,1,,,
+// 30013,Ulysse@cold,anytarget,14,10,10000,50,200,no,target,expanded,ready_for_ice,,,,,,,
+// 30013,Ulysse@volcano,anytarget,285,5,10000,100,500,no,self,expanded,ready_for_volcano,,,,,,,
+// 30013,Ulysse@doublecast,any,482,5,10000,50,3000,no,self,mystatusoff,doublecasting,,,,,,,
+30013,Ulysse@MG_ENERGYCOAT,any,157,1,10000,100,10000,no,self,mystatusoff,energycoat,,,,,,,
+// 30013,Ulysse@AL_HEAL,idle,28,1,10000,0,200,no,self,myhpltmaxrate,99,,,,,,,
+
+
+
+
+
+//30013,Ulysse@SA_ABRA,anytarget,290,10,5000,0,200,no,randomtarget,expanded,targetholy,,,,,,,
+30014,Rudeuss@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30014,Rudeus@PR_RESURRECT,any,54,1,10000,0,1000,no,friend,expanded,ready_for_resu,,,,,,,
+30014,Rudeuss@Kaupe,any,464,3,10000,0,400,no,friend,friendstatusoff,kaupe,,,,,,,
+30014,Rudeuss@Kaizel,any,462,3,10000,1500,200,no,friend,expanded,friend_ready_for_kaizel,,,,,,,
+//30014,Rudeuss@Kaite,any,465,3,10000,0,200,no,self,mystatusoff,kaite,,,,,,,
+30014,Rudeuss@Kaupe,any,464,3,10000,0,400,no,self,mystatusoff,kaupe,,,,,,,
+30014,Rudeuss@Kaizel,any,462,3,10000,1500,200,no,self,expanded,self_ready_for_kaizel,,,,,,,
+
+30015,Singe@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30015,Singe@Union,any,444,1,10000,0,0,no,self,expanded,union,,,,,,,
+30015,Singe@warmth,anytarget,430,1,10000,0,10000,no,self,expanded,noknockback,,,,,,,
+30015,Singe@FSK,anytarget,421,7,10000,0,200,no,target,enemystatuson,safetywall,,,,,,,
+30015,Singe@CounterKick,anytarget,419,7,3333,0,200,no,target,always,,,,,,,,
+30015,Singe@counterstance,any,418,1,10000,0,0,no,self,mystatusoff,counterkickstance,,,,,,,
+30015,Singe@breakfall,any,420,1,10000,0,0,no,self,mystatusoff,breakfall,,,,,,,
+30015,Singe@warmwind,anytarget,425,1,10000,0,2000,no,self,expanded,self_fightwind,,,,,,,
+30015,Singe@warmwind,anytarget,425,2,10000,0,2000,no,self,expanded,self_fightwater,,,,,,,
+30015,Singe@warmwind,anytarget,425,3,10000,0,2000,no,self,expanded,self_fightfire,,,,,,,
+30015,Singe@warmwind,anytarget,425,4,10000,0,2000,no,self,expanded,self_fightearth,,,,,,,
+30015,Singe@warmwind,anytarget,425,5,10000,0,2000,no,self,expanded,self_fightghost,,,,,,,
+30015,Singe@warmwind,anytarget,425,6,10000,0,2000,no,self,expanded,self_fightholy,,,,,,,
+30015,Singe@warmwind,anytarget,425,7,10000,0,2000,no,self,expanded,self_fightdark,,,,,,,
+
+
+
+//30007,atawn@NPC_SUMMONSLAVE,idle,196,2,10000,500,0,no,self,slavele,0,30007,,,,,,
+//30007,Atawn@NPC_CALLSLAVE,idle,352,2,10000,0,60000,yes,self,always,0,,,,,,,
+30007,Atawn@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30007,Atawn@NPC_fullheal,anytarget,687,1,10000,0,5000,no,self,myhpltmaxrate,1,,,,,,,
+30007,Atawn@NPC_fullheal,idle,687,1,10000,0,5000,no,self,always,,,,,,,,
+
+30007,Atawn@NJ_CICADA,walk,531,5,10000,0,0,no,self,mystatusoff,cicada,,,,,,,
+30007,Atawn@NJ_CICADA,any,531,5,10000,0,0,no,self,mystatusoff,cicada,,,,,,,
+
+//30007,Atawn@TF_HIDING,chase,51,10,10000,0,0,no,self,longrangeattacked,,,,,,,,
+//30007,Atawn@TF_HIDING,idle,51,10,10000,0,0,no,self,longrangeattacked,,,,,,,,
+
+30007,Atawn@TF_HIDING,attack,51,10,5000,0,100,no,self,expanded,ninja_hide_attack,,,,,,,
+30007,Atawn@NJ_TATAMI,anytarget,527,5,5000,0,300,no,self,expanded,target_close_pneuma_aligned,,,,,,,
+
+
+30007,Atawn@TF_HIDING,chase,51,10,5000,0,0,no,self,always,,,,,,,,
+30007,Atawn@TF_HIDING,idle,51,10,3000,0,400,no,self,always,,,,,,,,
+
+
+
+30007,Atawn@NJ_SHADOWSlash,anytarget,530,10,10000,0,0,no,target,mystatuson,hiding,,,,,,,
+30007,Atawn@NJ_SHADOWSLASH,idle,530,10,10000,0,0,no,randomtarget,mystatuson,hiding,,,,,,,
+30007,Atawn@NJ_Mist,anytarget,528,10,10000,0,200,no,target,enemystatuson,pneuma,,,,,,,
+30007,Atawn@NJ_SHADOWJUMP,idle,529,5,10000,0,0,no,around4,mystatuson,hiding,,,,,,,
+30007,Atawn@NPC_FINALSTRIKE,anytarget,544,10,3000,0,5000,yes,target,expanded,ready_to_finalstrike,,,,,,,
+30007,Atawn@NPC_HUUMA,anytarget,525,10,5000,100,100,no,target,enemystatusoff,pneuma,,,,,,,
+30007,Atawn@NPC_THROWZENY,anytarget,526,10,10000,0,1000,no,target,enemystatusoff,pneuma,,,,,,,
+
+30007,Atawn@NPC_STONESKIN,attack,543,5,10000,300,300,yes,self,mystatusoff,soul,,,,,,,
+30007,Atawn@NPC_STONESKIN,chase,543,5,1000,300,300,yes,self,mystatusoff,soul,,,,,,,
+30007,Atawn@NPC_STONESKIN,idle,543,5,10000,300,300,yes,self,mystatusoff,soul,,,,,,,
+
+30005,Koudekouto@AL_Hiding,anytarget,51,11,10000,0,0,yes,self,expanded,ready_to_hide,,,,,,,
+30005,Koudekouto@AL_Hiding,any,51,11,10000,0,0,yes,self,expanded,ready_to_dehide,,,,,,,
+30005,Koudekouto@SIN_GRIMMTOOTH,idle,137,5,10000,0,200,yes,randomtarget,mystatuson,hiding,,,,,,,
+
+30005,KoudeKouto@SIN_HIDE,anytarget,51,10,10000,0,200,no,self,afterskill,150,,,,,,,
+30005,KoudeKouto@SIN_HIDE,idle,51,10,10000,0,200,no,self,mystatuson,hiding,,,,,,,
+
+30005,KoudeKouto@SIN_BackSliding,attack,150,1,10000,0,200,no,self,enemystatuson,safetywall,,,,,,,
+30005,KOUdeKOUTO@AS_CLOAKING,idle,135,10,10000,0,0,yes,self,expanded,ready_to_cloak,,,,,,,
+30005,KOUdeKOUTO@AS_CLOAKING,chase,135,10,10000,0,0,yes,self,expanded,ready_to_cloak,,,,,,,
+30005,KOUDEKOUTO@ASC_EDP,idle,378,5,10000,0,30000,yes,self,always,,,,,,,,
+30005,KOUDEKOUTO@ASC_EDP,anytarget,378,5,10000,0,30000,yes,self,always,,,,,,,,
+30016,dominus@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30016,dominus@NPC_SUMMONSLAVE,any,196,1,10000,500,0,no,self,slavele,0,31001,,,,,,
+30016,dominus@NPC_CALLSLAVE,any,352,1,10000,0,60000,yes,self,always,0,,,,,,,
+30016,Dominus@dominus,anytarget,490,10,10000,10,200,no,target,expanded,can_damage_neutral_ranged,,,,,,,
+
+31001,DominusHom@caprice,anytarget,8013,5,10000,0,1000,no,target,always,,,,,,,,
+
+30020,Gaius@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+//30020,Gaius@gaius,any,231,4,10000,0,200,no,self,myhpltmaxrate,99,,,,,,,
+//30020,Gaius@biocani,any,232,4,10000,0,5000,no,self,always,,,,,,,,
+30020,Gaius@cart,idle,154,10,10000,10,200,no,self,onspawn,,,,,,,,
+30020,Gaius@SLIMPITCH,any,478,10,10000,10,200,no,self,myhpltmaxrate,90,,,,,,,
+30020,Gaius@DUMMY,any,3047,3,10000,0,1000,yes,friend,expanded,friend_needs_slim_far,settarget,15,,,,,
+30020,Gaius@SLIMPITCH,any,478,10,10000,10,200,no,friend,expanded,friend_needs_slim,,,,,,,
+30020,Gaius@FULLCHEMICAL,any,479,5,10000,10,200,no,friend,expanded,friend_needs_chemical,,,,,,,
+//30020,Gaius@PITCH,any,231,5,10000,0,200,no,friend,expanded,friend_needs_heal_far,,,,,,,
+
+
+
+
+
+30006,Shadow@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30006,Shadow@PR_RESURRECT,any,54,1,10000,0,1000,no,friend,expanded,ready_for_resu,,,,,,,
+30006,Shadow@GOSPEl,any,369,10,10000,0,0,no,self,mystatuson,hellpower,,,,,,,
+30006,Shadow@GOSPEl,any,369,10,10000,0,0,no,self,mystatuson,gospel,,,,,,,
+30006,Shadow@DEVO,any,255,5,10000,100,0,no,friend,expanded,ready_for_devotion,settarget,20,,,,,
+
+30006,Shadow@CR_AUTOGUARD,any,249,10,10000,0,200,yes,self,afterskill,3047,,,,,,,
+30006,Shadow@DUMMY,any,3047,10,10000,0,500,yes,friend,expanded,friend_needs_autoguard,,,,,,,
+30006,Shadow@CR_AUTOGUARD,any,249,10,10000,0,200,yes,self,mystatusoff,autoguard,,,,,,,
+
+30006,Shadow@CR_DEFENDER,idle,257,5,10000,0,1500,yes,self,mystatuson,defender,,,,,,,
+
+30006,Shadow@CR_DEFENDER,anytarget,257,5,10000,0,200,yes,self,afterskill,3046,,,,,,,
+30006,Shadow@DUMMY,anytarget,3046,10,10000,0,500,yes,friend,expanded,friend_needs_defender,,,,,,,
+30006,Shadow@CR_DEFENDER,anytarget,257,5,10000,0,200,yes,self,expanded,self_needs_defender,,,,,,,
+
+30006,Shadow@CR_PROVIDENCE,any,256,5,10000,100,200,yes,friend,expanded,ready_for_providence,,,,,,,
+30006,Shadow@SM_ENDURE,any,8,10,10000,0,0,yes,self,mystatusoff,endure,,,,,,,
+
+30006,Shadow@CR_REFLECTSHIELD,any,252,10,10000,0,200,yes,self,afterskill,3048,,,,,,,
+30006,Shadow@DUMMY,any,3048,10,10000,0,500,yes,friend,expanded,friend_needs_reflect,,,,,,,
+30006,Shadow@CR_REFLECTSHIELD,any,252,10,10000,0,200,yes,self,mystatusoff,reflectshield,,,,,,,
+
+30006,Shadow@AL_HEAL,idle,28,10,10000,0,0,yes,self,myhpltmaxrate,99,,,,,,,
+30006,Shadow@AL_HEAL,anytarget,28,10,10000,0,0,yes,self,myhpltmaxrate,75,,,,,,,
+//30006,Shadow@PA_PRESSURE,anytarget,367,5,10000,50,0,no,target,always,,,,,,,,
+
+
+30006,Shadow@NPC_STONESKIN,anytarget,675,10,10000,0,0,yes,self,myhpltmaxrate,20,,,,,,,
+
+30003,Horizontal@warmwind,anytarget,425,1,10000,0,2000,no,self,expanded,self_fightwind,,,,,,,
+30003,Horizontal@warmwind,anytarget,425,2,10000,0,2000,no,self,expanded,self_fightwater,,,,,,,
+30003,Horizontal@warmwind,anytarget,425,3,10000,0,2000,no,self,expanded,self_fightfire,,,,,,,
+30003,Horizontal@warmwind,anytarget,425,4,10000,0,2000,no,self,expanded,self_fightearth,,,,,,,
+30003,Horizontal@warmwind,anytarget,425,5,10000,0,2000,no,self,expanded,self_fightghost,,,,,,,
+30003,Horizontal@warmwind,anytarget,425,6,10000,0,2000,no,self,expanded,self_fightholy,,,,,,,
+30003,Horizontal@warmwind,anytarget,425,7,10000,0,2000,no,self,expanded,self_fightdark,,,,,,,
+30003,Horizontal@HT_ANKLESNARE,idle,117,5,5000,0,5000,yes,around4,always,0,,,,,,,
+30003,Horizontal@HT_ANKLESNARE,chase,117,5,5000,0,5000,yes,around4,always,0,,,,,,,
+
+30003,Horizontal@AC_CHARGEARROW,anytarget,148,1,3000,0,200,no,randomtarget,expanded,target_close_not_pneuma,,,,,,,
+30003,Horizontal@AC_SHARPSHOOT,anytarget,382,5,10000,0,200,no,randomtarget,always,,,,,,,,
+30003,Horizontal@AC_DOUBLE,anytarget,46,10,10000,0,100,no,target,always,,,,,,,,
+
+
+1163,clear,attack,249,2,500,0,300000,yes,self,always,0,,,,,,,
+1163,Raydric@BS_MAXIMIZE,attack,114,5,500,1000,5000,no,self,always,0,,,,,,,
+1163,Raydric@BS_MAXIMIZE,chase,114,5,500,1000,5000,no,self,always,0,,,,,,,
+1163,Raydric@NPC_DARKNESSATTACK,anytarget,190,3,10000,500,5000,no,randomtarget,expanded,target_ranged,locktarget,,,,,,
+1163,Raydric@NPC_DARKNESSATTACK,anytarget,190,3,10000,500,5000,no,target,always,,,,,,,,
+1163,Raydric@NPC_DARKNESSBREATH,anytarget,658,3,10000,500,5000,no,target,always,,,,,,,,
+//1163,Raydric@NPC_EMOTION,any,197,1,10000,0,1000,yes,self,afterskill,3046,1,1,1,,,,
+//1163,Raydric@DUMMY1,anytarget,3046,10,10000,0,500,yes,randomtarget,expanded,target_ranged,locktarget,,,,,,
+
+1163,Raydric@SM_MAGNUM,attack,7,9,500,500,5000,no,self,always,0,,,,,,6,
+1163,Raydric@CR_AUTOGUARD,chase,249,2,2000,0,300000,yes,self,longrangeattacked,,,,,,,,
+
+1163,Raydric@CR_AUTOGUARD,attack,249,2,500,0,300000,yes,self,always,0,,,,,,,
+
+31000,Sentinel@PR_STRECOVERY,any,72,5,1000,500,10000,yes,friend,expanded,friend_needs_recovery,,,,,,,
+31000,Sentinel@AL_HEAL,any,28,1,5000,500,2500,yes,friend,expanded,friend_needs_heal,,,,,,,
+
+//CREPUSCULE DEBUT
+// 30000,Taoist Hermit@MO_FINGEROFFENSIVE,attack,263,10,10000,0,100,no,target,always,0,,,,,,,
+// 30000,Taoist Hermit@MO_EXTREMITYFIST,attack,271,5,10000,0,100,no,target,afterskill,372,,,,,,29,41
+// 30000,Taoist Hermit@MO_quatre,attack,372,10,10000,0,100,no,target,afterskill,273,,,,,,,
+// 30000,Taoist Hermit@MO_trois,attack,273,5,10000,0,100,no,target,afterskill,272,,,,,,,
+// 30000,Taoist Hermit@MO_deux,attack,272,5,10000,0,100,no,target,afterskill,263,,,,,,,
+//30008,CREPUSCULE@MG_Sight,chase,10,1,10000,0,1000,yes,self,mystatusoff,sight,,,,,,,
+30008,CREPUSCULE@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30008,CREPUSCULE@AL_Hiding,anytarget,51,11,10000,0,0,yes,self,expanded,ready_to_hide,,,,,,,
+30008,CREPUSCULE@AL_Hiding,any,51,11,10000,0,0,yes,self,expanded,ready_to_dehide,,,,,,,
+30008,CREPUSCULE@AL_PNEUMA,idle,25,1,10000,0,100,yes,self,longrangeattacked,,,,,,,,
+30008,CREPUSCULE@MO_FULLHEAL,attack,687,1,10000,0,5000,no,self,afterskill,271,,,,,,,
+30008,CREPUSCULE@MO_FULLHEAL,chase,687,1,10000,0,5000,no,self,afterskill,271,,,,,,,
+30008,CREPUSCULE@MO_EXTREMITYFIST,anytarget,271,5,10000,300,173,no,randomtarget,expanded,can_asura_player,settarget,3,,,,,
+30008,CREPUSCULE@MO_EXTREMITYFIST,anytarget,271,5,10000,300,173,no,randomtarget,expanded,can_asura_mvp,settarget,9,,,,,
+30008,CREPUSCULE@MO_EXTREMITYFIST,anytarget,271,5,10000,300,173,no,randomtarget,expanded,can_asura,locktarget,9,,,,,
+30008,CREPUSCULE@CH_PALMSTRIKE,attack,370,5,10000,0,200,yes,target,expanded,ready_for_palm,,,,,,,
+30008,CREPUSCULE@NPC_AGIUP,chase,29,10,7500,50,100,no,self,mystatusoff,increaseagi,,,,,,,
+30008,CREPUSCULE@NPC_AGIUP,idle,29,10,7500,50,100,no,self,mystatusoff,increaseagi,,,,,,,
+30008,CREPUSCULE@MO_EXPLOSIONSPIRITS,any,270,5,10000,0,130,no,self,expanded,explosion,,,,,,,
+30008,CREPUSCULE@MO_ABSORBSPIRITS,chase,262,1,8000,300,100,no,randomtarget,expanded,chase_absorb,,,,,,,
+30008,CREPUSCULE@MO_ABSORBSPIRITS,attack,262,1,1500,300,100,no,target,expanded,melee_absorb,,,,,,,
+30008,CREPUSCULE@CH_SOULCOLLECT,any,401,1,10000,300,200,no,self,expanded,notballs,,,,,,,
+30008,CREPUSCULE@AL_HEAL,idle,28,10,10000,0,0,no,self,myhpltmaxrate,99,,,,,,,
+30008,CREPUSCULE@AC_DECAGI,chase,30,10,8000,50,400,no,target,expanded,ready_for_decrease,,,,,,,
+30008,CREPUSCULE@CH_PALMSTRIKE,attack,370,5,10000,0,200,yes,target,enemystatuson,safetywall,,,,,,,
+30008,CREPUSCULE@NPC_AGIUP,chase,29,10,10000,50,100,no,friend,friendstatusoff,increaseagi,,,,,,,
+30008,CREPUSCULE@NPC_AGIUP,idle,29,10,10000,50,100,no,friend,friendstatusoff,increaseagi,,,,,,,
+30008,CREPUSCULE@HP_BLESSING,any,34,10,10000,0,1000,no,friend,expanded,friend_needs_blessing,,,,,,,
+30008,CREPUSCULE@MO_FINGEROFFENSIVE,anytarget,267,5,10000,800,200,no,target,expanded,finger_fallback,,,,,,,
+
+//CREP FIN
+31000,Sentinelle@DUMMY1,idle,3046,1,1,0,30000,yes,self,always,,,,,,,,
+
+
+
+// JEEL//
+30009,Jeel@KN_SPEARSTAB,attack,58,10,10000,0,300,no,target,always,,,,,,,,
+30009,Jeel@KN_SPEARSTAB,chase,58,10,10000,0,300,no,target,always,,,,,,,,
+//Brandon
+30004,BRANDON@GS_RAPID,anytarget,515,10,10000,0,0,no,target,enemystatusoff,pneuma,,,,,,,
+//30004,BRANDON@GS_DESPERADO,anytarget,516,10,10000,0,0,no,self,always,,,,,,,,
+
+//30017,Tayla@EXPANDED_CHANGE_RANGE,anytarget,3054,1,10000,0,1000,yes,self,always,,,,,,,,
+30017,Tayla@AL_Hiding,anytarget,51,11,10000,0,0,yes,self,expanded,ready_to_hide,,,,,,,
+30017,Tayla@AL_Hiding,any,51,11,10000,0,0,yes,self,expanded,ready_to_dehide,,,,,,,
+30017,Tayla@SLOWGRACE,anytarget,328,20,10000,0,0,no,self,expanded,target_ready_for_slowgrace,,,,,,,
+30017,Tayla@DUMMY,anytarget,3047,3,10000,0,1000,yes,randomtarget,expanded,target_awaits_slowgrace,lockskillonce,14,,,,,
+30017,Tayla@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30017,Tayla@ADAPTATION,any,304,1,10000,0,0,no,self,mystatuson,dancing,,,,,,,
+30017,Tayla@TAROT,anytarget,489,5,10000,0,300,yes,randomtarget,always,,,,,,,,
+
+30018,Mammouth@CT,anytarget,485,10,10000,0,200,no,target,always,,,,,,,,
+//30018,Mammouth@CT,any,387,1,10000,0,300,yes,self,mystatusoff,cartboost,,,,,,,
+
+30019,Seigneur Incube@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30019,Seigneur Incube@AL_Hiding,anytarget,51,11,10000,0,0,yes,self,expanded,ready_to_hide,,,,,,,
+30019,Seigneur Incube@AL_Hiding,any,51,11,10000,0,0,yes,self,expanded,ready_to_dehide,,,,,,,
+30019,Seigneur Incube@DUMMY,any,3047,3,10000,0,1000,yes,friend,expanded,friend_needs_dance,settarget,14,,,,,
+30019,Seigneur Incube@ADAPTATION,any,304,1,10000,0,0,no,self,mystatuson,dancing,,,,,,,
+30019,Seigneur Incube@BRAGI,any,321,15,10000,0,0,no,self,expanded,friend_needs_bragi,,,,,,,
+30019,Seigneur Incube@SUNSET,any,320,16,10000,0,0,no,self,expanded,friend_needs_sunset,,,,,,,
+30019,Seigneur Incube@APPLE,any,322,15,10000,0,0,no,self,expanded,friend_needs_apple,,,,,,,
+
+30100,castor@AL_PNEUMA,any,25,1,10000,0,100,yes,self,longrangeattacked,,,,,,,,
+30100,castor@PR_CURE,any,35,1,10000,0,100,yes,friend,expanded,friendcurable,,,,,,,
+30100,castor@HP_BLESSING,any,34,10,10000,0,300,no,friend,expanded,friend_needs_blessing,,,,,,,
+30100,castor@HP_INCAGI,any,29,10,10000,300,0,no,friend,expanded,ready_for_friend_agi,,,,,,,
+30100,castor@HP_BLESSING,any,34,10,10000,0,1000,no,self,mystatusoff,blessing,,,,,,,
+30100,castor@HP_INCAGI,any,29,10,10000,300,0,no,self,expanded,ready_for_self_agi,,,,,,,
+30100,castor@AL_PNEUMA,anytarget,25,1,10000,0,200,yes,around1,expanded,ready_for_pneuma,,,,,,19,
+30100,castor@AL_PNEUMA,anytarget,25,1,10000,0,200,yes,friend,expanded,friend_long_range_cell_empty,,,,,,19,
+30100,castor@AL_HEAL,any,28,10,10000,0,800,yes,friend,expanded,friend_needs_heal,0,0,0,,,,
+30100,castor@AL_HEAL,any,28,10,10000,0,800,yes,self,myhpltmaxrate,99,,,,,,,
+
+30101,Magu@NPC_CHANGEFIRE,anytarget,164,1,10000,0,1000,no,self,expanded,adapt_to_fire,,,,,,,
+30101,Magu@NPC_CHANGEWATER,any,162,1,2500,0,10000,no,self,expanded,adapt_to_water,,,,,,,
+30101,Magu@NPC_CHANGEWIND,any,165,1,5000,0,5000,no,self,expanded,adapt_to_wind,,,,,,,
+30101,Magu@MG_SOULSTRIKE,anytarget,13,5,10000,300,2200,no,randomtarget,expanded,magu_soulstrike,,,,,,,
+30101,Magu@MG_firebolt,anytarget,19,7,3333,1500,3000,no,randomtarget,expanded,magu_bolt,,,,,,,
+30101,Magu@MG_lightningbolt,anytarget,20,7,5000,1500,3000,no,randomtarget,expanded,magu_bolt,,,,,,,
+30101,Magu@MG_coldbolt,anytarget,14,10,10000,1500,3000,no,randomtarget,expanded,magu_bolt,,,,,,,
+
+
+1219,Knight of Abyss@AC_CHARGEARROW,anytarget,174,1,10000,0,2000,yes,target,always,0,,,,,,,
+//1219,Knight of Abyss@AC_CHARGEARROW,anytarget,158,10,10000,100,2000,yes,target,always,0,,,,,,,
+
+
+30200,Soul Taker@NPC_POWERUP,anytarget,349,5,2000,0,30000,yes,self,myhpltmaxrate,50,,,,,,,
+30200,Soul Taker@ASC_BREAKER,anytarget,379,10,2000,0,5000,yes,target,always,0,,,,,,,
+30200,Soul Taker@sonic,attack,136,10,2000,0,5000,no,target,always,0,,,,,,6,
+30200,Soul Taker@investi,attack,266,5,4000,0,5000,no,target,always,0,,,,,,6,
+30200,Soul Taker@NPC_DARKNESSBREATH,anytarget,658,3,10000,100,5000,no,target,always,,,,,,,,
+30200,Soul Taker@NPC_METAMORPHOSIS,anytarget,193,2,100,3000,10000,no,self,always,0,30200,,,,,,
+30200,Soul Taker@ASC_EDP,any,378,5,10000,0,30000,yes,self,always,,,,,,,,
+
+30022,Darwinia@EXPANDED_DHRES,idle,3049,60,10000,0,1000,no,self,onspawn,,,,,,,,
+30022,Darwinia@SA_LANDPROTECT,any,288,5,10000,0,200,no,friend,expanded,friend_needs_land,,,,,,,
+30022,Darwinia@MG_ENERGYCOAT,any,157,1,10000,10,10000,no,self,mystatusoff,energycoat,,,,,,,

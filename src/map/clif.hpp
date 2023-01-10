@@ -761,7 +761,7 @@ void clif_skillunit_update(struct block_list* bl);
 void clif_skill_unit_test(struct block_list *bl, short x, short y, int unit_id, short range, short skill_lv);
 
 void clif_autospell(map_session_data *sd,uint16 skill_lv);
-void clif_devotion(struct block_list *src, map_session_data *tsd);
+void clif_devotion(struct block_list *src, struct block_list *tbl);
 void clif_spiritball( struct block_list *bl, struct block_list* target = nullptr, enum send_target send_target = AREA );
 void clif_soulball( map_session_data *sd, struct block_list* target = nullptr, enum send_target send_target = AREA );
 void clif_servantball( map_session_data& sd, struct block_list* target = nullptr, enum send_target send_target = AREA );
@@ -879,7 +879,7 @@ void clif_bg_message(struct s_battleground_data *bg, int src_id, const char *nam
 void clif_bg_updatescore(int16 m);
 void clif_bg_updatescore_single(map_session_data *sd);
 void clif_sendbgemblem_area(map_session_data *sd);
-void clif_sendbgemblem_single(int fd, map_session_data *sd);
+void clif_sendbgemblem_single(int fd, block_list* bl);
 
 // Battleground Queue
 void clif_bg_queue_apply_result(e_bg_queue_apply_ack result, const char *name, map_session_data *sd);

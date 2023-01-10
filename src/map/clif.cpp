@@ -5031,14 +5031,14 @@ static void clif_getareachar_pc(map_session_data* sd,map_session_data* dstsd)
 	// display link (sd - dstsd) to sd
 	ARR_FIND( 0, MAX_DEVOTION, i, sd->devotion[i] == dstsd->bl.id );
 	if( i < MAX_DEVOTION )
-		clif_devotion(&sd->bl, sd);
+		clif_devotion(&sd->bl, &sd->bl);
 	// display links (dstsd - devotees) to sd
 	ARR_FIND( 0, MAX_DEVOTION, i, dstsd->devotion[i] > 0 );
 	if( i < MAX_DEVOTION )
-		clif_devotion(&dstsd->bl, sd);
+		clif_devotion(&dstsd->bl, &sd->bl);
 	// display link (dstsd - crusader) to sd
 	if( dstsd->sc.getSCE(SC_DEVOTION) && (d_bl = map_id2bl(dstsd->sc.getSCE(SC_DEVOTION)->val1)) != NULL )
-		clif_devotion(d_bl, sd);
+		clif_devotion(d_bl, &sd->bl);
 }
 
 void clif_getareachar_unit( map_session_data* sd,struct block_list *bl ){
@@ -5076,25 +5076,26 @@ void clif_getareachar_unit( map_session_data* sd,struct block_list *bl ){
 	switch (bl->type)
 	{
 	case BL_PC:
-		{
-			TBL_PC* tsd = (TBL_PC*)bl;
-
+	{
+		map_session_data* tsd = BL_CAST(BL_PC, bl);
+		if (tsd) {
 			clif_getareachar_pc(sd, tsd);
-			if(tsd->state.size==SZ_BIG) // tiny/big players [Valaris]
-				clif_specialeffect_single(bl,EF_GIANTBODY2,sd->fd);
-			else if(tsd->state.size==SZ_MEDIUM)
-				clif_specialeffect_single(bl,EF_BABYBODY2,sd->fd);
-			if( tsd->bg_id && map_getmapflag(tsd->bl.m, MF_BATTLEGROUND) )
-				clif_sendbgemblem_single(sd->fd,tsd);
-			if ( tsd->status.robe )
-				clif_refreshlook(&sd->bl,bl->id,LOOK_ROBE,tsd->status.robe,SELF);
-			clif_efst_status_change_sub(&sd->bl, bl, SELF);
-			clif_hat_effects(sd,bl,SELF);
+			if (tsd->state.size == SZ_BIG) // tiny/big players [Valaris]
+				clif_specialeffect_single(bl, EF_GIANTBODY2, sd->fd);
+			else if (tsd->state.size == SZ_MEDIUM)
+				clif_specialeffect_single(bl, EF_BABYBODY2, sd->fd);
+			if (tsd->bg_id && map_getmapflag(tsd->bl.m, MF_BATTLEGROUND))
+				clif_sendbgemblem_single(sd->fd, bl);
+			if (tsd->status.robe)
+				clif_refreshlook(&sd->bl, bl->id, LOOK_ROBE, tsd->status.robe, SELF);
 		}
-		break;
+		    clif_efst_status_change_sub(&sd->bl, bl, SELF);
+		clif_hat_effects(sd, bl, SELF);
+	}
+	break;
 	case BL_MER: // Devotion Effects
 		if( ((TBL_MER*)bl)->devotion_flag )
-			clif_devotion(bl, sd);
+			clif_devotion(bl, &sd->bl);
 		break;
 	case BL_NPC:
 		{
@@ -5111,20 +5112,44 @@ void clif_getareachar_unit( map_session_data* sd,struct block_list *bl ){
 		break;
 	case BL_MOB:
 		{
-			TBL_MOB* md = (TBL_MOB*)bl;
+			TBL_MOB* md = (mob_data*)bl;
+			block_list* d_bl = NULL;
+			int i = 0;
+			if(status_isdead(bl))
+				clif_clearunit_area(bl,CLR_DEAD);
+			if (md->bg_id){
+				clif_sendbgemblem_single(sd->fd, bl);
+				std::shared_ptr<s_battleground_data> bgteam = util::umap_find(bg_team_db, md->bg_id);
+				if (bgteam) {
+				  for (const auto& pl_sd : bgteam->members)
+				    clif_monster_hp_bar(md, pl_sd.sd->fd);
+				}
+			}
 			if(md->special_state.size==SZ_BIG) // tiny/big mobs [Valaris]
 				clif_specialeffect_single(bl,EF_GIANTBODY2,sd->fd);
 			else if(md->special_state.size==SZ_MEDIUM)
 				clif_specialeffect_single(bl,EF_BABYBODY2,sd->fd);
 #if PACKETVER >= 20120404
 			if (battle_config.monster_hp_bars_info && !map_getmapflag(bl->m, MF_HIDEMOBHPBAR)) {
-				int i;
+
 				for(i = 0; i < DAMAGELOG_SIZE; i++)// must show hp bar to all char who already hit the mob.
-					if( md->dmglog[i].id == sd->status.char_id )
+					if (md->dmglog[i].id == sd->status.char_id)
 						clif_monster_hp_bar(md, sd->fd);
 			}
+			ARR_FIND( 0, MAX_DEVOTION, i, sd->bl.id == md->devotion[i] );
+			if( i < MAX_DEVOTION )
+				clif_devotion(&sd->bl, &sd->bl);
+			ARR_FIND(0, MAX_DEVOTION, i, md->devotion[i] > 0);
+			if (i < MAX_DEVOTION)
+				clif_devotion(&md->bl, &sd->bl);
+			if (status_get_sc(bl)->getSCE(SC_DEVOTION) && (d_bl = map_id2bl(status_get_sc(bl)->getSCE(SC_DEVOTION)->val1)) != NULL)
+				clif_devotion(d_bl, &sd->bl);
+			//Assumptio hardfix for mobs
+			status_change* sc = status_get_sc(bl);
+			if(sc && sc->getSCE(SC_ASSUMPTIO))
+				clif_specialeffect(bl, EF_ASSUMPTIO, AREA_WOS);
 #endif
-		}
+	}
 		break;
 	case BL_PET:
 		if (vd->head_bottom)
@@ -8556,7 +8581,7 @@ void clif_autospell(map_session_data *sd,uint16 skill_lv)
 
 /// Devotion's visual effect (ZC_DEVOTIONLIST).
 /// 01cf <devoter id>.L { <devotee id>.L }*5 <max distance>.W
-void clif_devotion(struct block_list *src, map_session_data *tsd)
+void clif_devotion(struct block_list *src, struct block_list *tbl)
 {
 	unsigned char buf[56];
 
@@ -8573,7 +8598,17 @@ void clif_devotion(struct block_list *src, map_session_data *tsd)
 
 		WBUFW(buf,26) = skill_get_range2(src, ML_DEVOTION, mercenary_checkskill(md, ML_DEVOTION), false);
 	}
-	else
+	else if(src->type == BL_MOB)
+	{
+		int i;
+		struct mob_data *md = BL_CAST(BL_MOB,src);
+		if( md == NULL )
+			return;
+
+		for( i = 0; i < 5 /*MAX_DEVOTION*/; i++ ) // Client only able show to 5 links
+			WBUFL(buf,6+4*i) = md->devotion[i];
+		WBUFW(buf,26) = skill_get_range2(src, CR_DEVOTION, 5, false);
+	}else if(src->type == BL_PC)
 	{
 		int i;
 		map_session_data *sd = BL_CAST(BL_PC,src);
@@ -8585,8 +8620,8 @@ void clif_devotion(struct block_list *src, map_session_data *tsd)
 		WBUFW(buf,26) = skill_get_range2(src, CR_DEVOTION, pc_checkskill(sd, CR_DEVOTION), false);
 	}
 
-	if( tsd )
-		clif_send(buf, packet_len(0x1cf), &tsd->bl, SELF);
+	if( tbl )
+		clif_send(buf, packet_len(0x1cf),tbl, SELF);
 	else
 		clif_send(buf, packet_len(0x1cf), src, AREA);
 }
@@ -8608,6 +8643,9 @@ void clif_spiritball( struct block_list *bl, struct block_list* target, enum sen
 			break;
 		case BL_HOM:
 			p.num = ( (struct homun_data*)bl )->homunculus.spiritball;
+			break;
+		case BL_MOB:
+			p.num = ((struct mob_data*)bl)->spiritball;
 			break;
 	}
 
@@ -10132,17 +10170,18 @@ void clif_name( struct block_list* src, struct block_list *bl, send_target targe
 				safestrncpy( packet.name, md->name, NAME_LENGTH );
 
 				char mobhp[50], *str_p = mobhp;
+				if(!map_getmapflag(md->bl.m,MF_BATTLEGROUND) && !(status_get_mode(&md->bl) & MD_PCBEHAVIOR)) {
+					if( battle_config.show_mob_info&4 ){
+						str_p += sprintf( str_p, "Lv. %d | ", md->level );
+					}
 
-				if( battle_config.show_mob_info&4 ){
-					str_p += sprintf( str_p, "Lv. %d | ", md->level );
-				}
+					if( battle_config.show_mob_info&1 ){
+						str_p += sprintf( str_p, "HP: %u/%u | ", md->status.hp, md->status.max_hp );
+					}
 
-				if( battle_config.show_mob_info&1 ){
-					str_p += sprintf( str_p, "HP: %u/%u | ", md->status.hp, md->status.max_hp );
-				}
-
-				if( battle_config.show_mob_info&2 ){
-					str_p += sprintf( str_p, "HP: %u%% | ", get_percentage( md->status.hp, md->status.max_hp ) );
+					if( battle_config.show_mob_info&2 ){
+						str_p += sprintf( str_p, "HP: %u%% | ", get_percentage( md->status.hp, md->status.max_hp ) );
+					}
 				}
 
 				// Even thought mobhp ain't a name, we send it as one so the client can parse it. [Skotlex]
@@ -18417,14 +18456,28 @@ void clif_sendbgemblem_area(map_session_data *sd)
 	clif_send(buf,packet_len(0x2dd), &sd->bl, AREA);
 }
 
-void clif_sendbgemblem_single(int fd, map_session_data *sd)
+void clif_sendbgemblem_single(int fd, block_list* bl)
 {
-	nullpo_retv(sd);
+	nullpo_retv(bl);
 	WFIFOHEAD(fd,32);
 	WFIFOW(fd,0) = 0x2dd;
-	WFIFOL(fd,2) = sd->bl.id;
-	safestrncpy(WFIFOCP(fd,6), sd->status.name, NAME_LENGTH);
-	WFIFOW(fd,30) = sd->bg_id;
+	WFIFOL(fd,2) = bl->id;
+	map_session_data* sd = BL_CAST(BL_PC, bl);
+	mob_data* md = BL_CAST(BL_MOB, bl);
+	char* n;
+	int bg_id;
+	if (sd) {
+		n = sd->status.name;
+		bg_id = sd->bg_id;
+	}
+	else if (md) {
+		n = md->name;
+		bg_id = md->bg_id;
+	}
+	else
+	  return;
+	safestrncpy(WFIFOCP(fd, 6), n, NAME_LENGTH);
+	WFIFOW(fd,30) = bg_id;
 	WFIFOSET(fd,packet_len(0x2dd));
 }
 

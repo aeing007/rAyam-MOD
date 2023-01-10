@@ -939,6 +939,9 @@ public:
   	automatons::MacroCollection macros; // don't tell him
 	std::shared_ptr<std::vector<std::vector<int>>> autorestock;
 	std::vector<uint32> party_booking_requests;
+  
+	int skill_being_cast_id;
+
 };
 extern struct eri *pc_sc_display_ers; /// Player's SC display table
 

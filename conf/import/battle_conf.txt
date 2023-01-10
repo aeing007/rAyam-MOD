@@ -1,0 +1,18 @@
+mob_critical_rate: 200
+monster_ai: 0x1065
+mob_warp: 11
+slaves_inherit_mode: 0
+retaliate_to_master: no
+mob_slave_keep_target: yes
+
+
+monster_chase_refresh_pcbehavior: 1
+view_range_rate_pcbehavior: 200
+chase_range_rate_pcbehavior: 200
+monster_eye_range_bonus_pcbehavior: 10
+
+skill_unit_timer_interval: 20
+idle_skill_interval_pcbehavior: 4
+min_mob_think_time_pcbehavior: 50
+min_random_walk_time_pcbehavior: 3000
+walk_skill_interval_pcbehavior: 3

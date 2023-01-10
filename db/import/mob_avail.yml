@@ -1,0 +1,343 @@
+# This file is a part of rAthena.
+#   Copyright(C) 2019 rAthena Development Team
+#   https://rathena.org - https://github.com/rathena
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+###########################################################################
+# Mob Availability and Alias Database
+###########################################################################
+#
+# Mob Availability and Alias Settings
+#
+###########################################################################
+# - Mob                     Mob to adjust.
+#   Sprite                  Sprite which will be sent to the client instead of Mob.
+#   Sex                     Sex (if Sprite is a player). (Default: Female)
+#   HairStyle               Hair Style ID (if Sprite is a player). (Default: 0)
+#   HairColor               Hair Color ID (if Sprite is a player). (Default: 0)
+#   ClothColor              Cloth Color ID (if Sprite is a player). (Default: 0)
+#   Weapon                  Item name of weapon (if Sprite is a player). (Default: 0)
+#   Shield                  Item name of shield (if Sprite is a player). (Default: 0)
+#   HeadTop                 Item name of headgear (if Sprite is a player). (Default: 0)
+#   HeadMid                 Item name of headgear (if Sprite is a player). (Default: 0)
+#   HeadLow                 Item name of headgear (if Sprite is a player). (Default: 0)
+#   PetEquip                Item name of pet equipment (if Mob is a valid pet). (Default: 0)
+#   Options:                Set an option for an object. (Optional)
+#     <Option>: bool
+###########################################################################
+
+Header:
+  Type: MOB_AVAIL_DB
+  Version: 1
+
+Body:
+  - Mob: KRAKEN
+    Sprite: JOB_CHAMPION
+    Sex: Male
+    HairStyle: 19
+    HairColor: 10
+    ClothColor: 270
+    Weapon: Krieger_Onehand_Mace1
+    Shield: Buckler
+    HeadTop: Dark_Knight_Mask
+    HeadMid: Robo_Eye
+    HeadLow: Weird_Goatee
+
+  - Mob: FULLMETAL
+    Sprite: JOB_HIGH_PRIEST
+    Sex: Male
+    HairStyle: 20
+    HairColor: 1
+    ClothColor: 11
+    Weapon: Long_Mace
+    Shield: Bradium_Shield
+    HeadTop: Magni_Cap
+    HeadMid: Machoman_Glasses
+    HeadLow: Cigar
+
+  - Mob: LEVANTINE
+    Sprite: JOB_HIGH_WIZARD
+    Sex: Female
+    HairStyle: 25
+    HairColor: 1
+    ClothColor: 450
+    Weapon: Wizardy_Staff
+    Shield: Bradium_Shield
+    HeadTop: Star_Sparkling
+    HeadMid: Mini_Glasses
+    HeadLow: Scarlet_Rose
+    
+  - Mob: HORIZONTAL
+    Sprite: JOB_SNIPER
+    Sex: Male
+    HairStyle: 23
+    HairColor: 21
+    ClothColor: 143
+    Weapon: Luna_Bow
+    HeadTop: L_Magestic_Goat
+    HeadMid: Masquerade
+    Options:
+     FALCON: true
+
+  - Mob: BRANDON
+    Sprite: JOB_GUNSLINGER
+    Sex: Male
+    HairStyle: 15
+    HairColor: 12
+    ClothColor: 121
+#    Weapon: Lever_Action_Rifle
+    Weapon: Six_Shooter
+    HeadTop: Sorin_doll_hat
+    HeadMid: Masquerade
+
+  - Mob: KOUDEKOUTO
+    Sprite: JOB_THIEF
+    Sex: Female
+    HairStyle: 15
+    HairColor: 12
+    ClothColor: 121
+    Weapon: Princess_Knife
+    HeadTop: Alice_Doll
+    HeadMid: Masquerade
+
+  - Mob: SHADOW
+    Sprite: JOB_PALADIN
+    Sex: MALE
+    HairStyle: 27
+    HairColor: 19
+    ClothColor: 380
+    Weapon: Forturn_Sword
+    HeadTop: Lunatic_Hat
+    HeadMid: Mischievous_Fairy
+    HeadLow: Iron_Cane
+     
+  - Mob: ATAWN
+    Sprite: JOB_NINJA
+    Sex: Male
+    HairStyle: 27
+    HairColor: 19
+    ClothColor: 120
+    Weapon: BF_Huuma_Shuriken1
+    HeadTop: L_Magestic_Goat
+    HeadLow: Masquerade
+    
+  - Mob: CREPUSCULE
+    Sprite: JOB_CHAMPION
+    Sex: Male
+    HairStyle: 17
+    HairColor: 12
+    ClothColor: 459
+    Weapon: Mace
+    HeadTop: Alice_doll
+    HeadLow: Sunglasses
+  - Mob: JEEL
+    Sprite: JOB_KNIGHT
+    Sex: Female
+    HairStyle: 10
+    HairColor: 3
+    ClothColor: 459
+    Weapon: Lance
+    HeadTop: Ribbon
+    HeadLow: Cigar
+    Options:
+      Riding: true
+  - Mob: META_FABRE
+    Sprite: JOB_KNIGHT
+    Sex: Male
+    HairStyle: 27
+    HairColor: 19
+    ClothColor: 120
+    Weapon: Spear
+    HeadTop: Prontera_Army_Cap_Repl
+    HeadLow: Cigar
+
+  - Mob: HERMES
+    Sprite: JOB_CLOWN
+    Sex: Male
+    HairStyle: 10
+    HairColor: 8
+    ClothColor: 359
+    Weapon: Harp
+    HeadTop: Costume_Ascension_Black_Dragon
+    HeadMid: Eyes_Of_Illusion
+    HeadLow: Mob_Scarf
+    Gargment: Costume_Fallen_Angel_Wings
+
+  - Mob: DIRKUS
+    Sprite: JOB_LORD_KNIGHT
+    Sex: Male
+    HairStyle: 10
+    HairColor: 3
+    ClothColor: 49
+    Weapon: Violet_Fear
+    HeadTop: Helm_Of_Darkness
+    HeadMid: Ifrit's_Ear
+    HeadLow: Antique_Pipe
+#    Options:
+#      Riding: true
+
+  - Mob: CANELUS
+    Sprite: JOB_LORD_KNIGHT
+    Sex: Male
+    HairStyle: 10
+    HairColor: 3
+    ClothColor: 49
+    Weapon: Hunting_spear
+    HeadTop: Helm
+    HeadMid: Fin_Helm
+    HeadLow: Fish_In_Mouth
+    Options:
+      Riding: true
+
+  - Mob: ULYSSE
+    Sprite: JOB_PROFESSOR
+    Sex: Male
+    HairStyle: 10
+    HairColor: 3
+    ClothColor: 49
+    Weapon: Book
+    HeadTop: Dragonhelm_Gold
+
+  - Mob: DARWINIA
+    Sprite: JOB_PROFESSOR
+    Sex: Female
+    HairStyle: 11
+    HairColor: 3
+    ClothColor: 49
+    Weapon: Book
+    HeadTop: Ramen_Hat
+        
+  - Mob: RUDEUS
+    Sprite: JOB_SOUL_LINKER
+    Sex: Male
+    HairStyle: 5
+    HairColor: 3
+    ClothColor: 200
+    Weapon: Rod
+    HeadTop: Mottled_Egg_Shell
+
+  - Mob: SINGE
+    Sprite: JOB_STAR_GLADIATOR
+    Sex: Male
+    HairStyle: 27
+    HairColor: 12
+    ClothColor: 300
+    Weapon: Book
+    HeadTop: L_Magestic_Goat
+    
+  - Mob: DOMINUS
+    Sprite: JOB_CREATOR
+    Sex: Male
+    HairStyle: 20
+    HairColor: 7
+    ClothColor: 320
+    Weapon: Knife
+    HeadTop: Ramen_Hat
+
+  - Mob: GAIUS
+    Sprite: JOB_CREATOR
+    Sex: Male
+    HairStyle: 22
+    HairColor: 3
+    ClothColor: 220
+    Weapon: Erde
+    HeadTop: Feather_Beret
+    HeadMid: Red_Glasses
+    HeadLow: Scarlet_Rose    
+    
+  - Mob: DOMINUS_
+    Sprite: 6012
+
+  - Mob: SENTINEL_OF_TIME
+    Sprite: C_TOWER_MANAGER
+
+  - Mob: CASTOR
+    Sprite: JOB_ACOLYTE
+    Sex: Male
+    HairStyle: 20
+    HairColor: 7
+    ClothColor: 320
+    Weapon: bow
+    HeadTop: Apple_of_archer
+ 
+  - Mob: JUNIN
+    Sprite: SHINOBI
+
+  - Mob: TAYLA
+    Sprite: JOB_GYPSY
+    Sex: Female
+    HairStyle: 25
+    HairColor: 1
+    ClothColor: 238
+    Weapon: Rope
+    Shield: Bradium_Shield
+    HeadTop: L_Magestic_Goat2
+    HeadMid: Mini_Glasses
+    HeadLow: Scarlet_Rose
+
+  - Mob: MAMMOUTH
+    Sprite: JOB_WHITESMITH
+    Sex: Female
+    HairStyle: 22
+    HairColor: 1
+    ClothColor: 238
+    Weapon: Rope
+    Shield: Bradium_Shield
+    HeadTop: Bone_Head
+    HeadMid: Angel_Spirit
+    HeadLow: Granpa_Beard_F
+
+  - Mob: MAGU
+    Sprite: JOB_MAGE
+    Sex: Male
+    HairStyle: 18
+    HairColor: 10
+    ClothColor: 120
+    Weapon: Rod
+    HeadMid: One_Eyed_Glass    
+    HeadTop: Cap_Of_Concentration
+    HeadLow: Pencil_In_Mouth
+         
+  - Mob: SHTEDY
+    Sprite: JOB_NOVICE
+    Sex: Male
+    HairStyle: 18
+    HairColor: 10
+    ClothColor: 120
+    Weapon: Rod
+
+         
+  - Mob: SEIGNEURINCUBE
+    Sprite: JOB_BARD
+    Sex: Male
+    HairStyle: 12
+    HairColor: 4
+    ClothColor: 121
+    Weapon: Harp
+    HeadTop: Morpheus's_Hood
+    HeadMid: Phantom_Of_Opera
+    
+  - Mob: LEZARD
+    Sprite: JOB_HIGH_WIZARD
+    Sex: Male
+    HairStyle: 25
+    HairColor: 1
+    ClothColor: 450
+    Weapon: Wizardy_Staff
+    Shield: Bradium_Shield
+    HeadTop: Jasper_Crest
+    HeadMid: Mini_Glasses
+    HeadLow: Scarlet_Rose
+    
